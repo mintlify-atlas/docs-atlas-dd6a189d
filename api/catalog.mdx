@@ -1,0 +1,183 @@
+---
+title: "Catalog Endpoints: Recent Vinyls and Album Detail"
+sidebarTitle: "Catalog"
+description: "GET /recientes returns the latest vinyl records. GET /disco/{id} returns full album detail. GET /disco/{id}/historia, /video, and /recomendaciones provide enriched data."
+---
+
+The catalog endpoints power the main VinylVibes storefront. They return vinyl records sourced from Discogs, enriched with Last.fm artist biographies and YouTube video links. The album detail modal fetches `/disco/{id}`, `/historia`, `/video`, and `/recomendaciones` in parallel to populate all sections of the UI without blocking the initial render.
+
+---
+
+## GET /recientes
+
+Returns the most recently added vinyl records. Used to populate the homepage carousel and the **Novedades & Historias** editorial section. No authentication is required.
+
+### Example request
+
+```bash
+curl https://api-tienda-vinilos.onrender.com/recientes
+```
+
+### Response
+
+An array of vinyl objects. Each object contains the following fields:
+
+<ResponseField name="discogs_id" type="string">
+  The Discogs release ID. Used as the primary identifier across all catalog endpoints.
+</ResponseField>
+
+<ResponseField name="titulo" type="string">
+  Album title.
+</ResponseField>
+
+<ResponseField name="artista" type="string">
+  Artist name.
+</ResponseField>
+
+<ResponseField name="imagen_url" type="string">
+  URL of the album cover image served from Discogs.
+</ResponseField>
+
+<ResponseField name="precio" type="number">
+  Price in USD.
+</ResponseField>
+
+<ResponseField name="genero" type="string">
+  Primary genre tag (e.g. `"Jazz"`, `"Rock"`).
+</ResponseField>
+
+### Response example
+
+```json
+[
+  {
+    "discogs_id": "12345",
+    "titulo": "Kind of Blue",
+    "artista": "Miles Davis",
+    "imagen_url": "https://...",
+    "precio": 29.99,
+    "genero": "Jazz"
+  }
+]
+```
+
+---
+
+## GET /disco/{discogsId}
+
+Returns full detail for a single vinyl record by its Discogs ID. This is the first call the album detail modal makes before firing the enrichment endpoints in parallel.
+
+### Path parameter
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `discogsId` | string | The Discogs release ID of the record to retrieve. |
+
+### Example request
+
+```bash
+curl https://api-tienda-vinilos.onrender.com/disco/12345
+```
+
+### Response fields
+
+<ResponseField name="discogs_id" type="string">
+  The Discogs release ID.
+</ResponseField>
+
+<ResponseField name="titulo" type="string">
+  Album title.
+</ResponseField>
+
+<ResponseField name="artista" type="string">
+  Artist name.
+</ResponseField>
+
+<ResponseField name="imagen_url" type="string">
+  URL of the album cover image.
+</ResponseField>
+
+<ResponseField name="precio" type="number">
+  Price in USD.
+</ResponseField>
+
+<ResponseField name="genero" type="string">
+  Primary genre tag.
+</ResponseField>
+
+<ResponseField name="disponible" type="boolean">
+  Whether the record is currently in stock and available to purchase.
+</ResponseField>
+
+---
+
+## GET /disco/{discogsId}/historia
+
+Returns the Last.fm artist biography and album story text. This content is displayed in the storytelling modal view triggered from the **Novedades & Historias** section. The frontend sends the JWT if one is present in `localStorage`, enabling optional personalized history tracking on the backend.
+
+### Path parameter
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `discogsId` | string | The Discogs release ID. |
+
+### Example request
+
+```bash
+curl https://api-tienda-vinilos.onrender.com/disco/12345/historia
+```
+
+### Response fields
+
+<ResponseField name="historia" type="string">
+  Biography and story text sourced from Last.fm for the album's artist.
+</ResponseField>
+
+---
+
+## GET /disco/{discogsId}/video
+
+Returns a YouTube video URL associated with the album. The frontend uses this to populate an iframe embed inside the album detail modal. If no video is found for the release, the response returns `null` for the URL field and the modal renders a placeholder instead.
+
+### Path parameter
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `discogsId` | string | The Discogs release ID. |
+
+### Example request
+
+```bash
+curl https://api-tienda-vinilos.onrender.com/disco/12345/video
+```
+
+### Response fields
+
+<ResponseField name="url" type="string | null">
+  A YouTube video embed URL (e.g. `https://www.youtube-nocookie.com/embed/{youtube_id}?rel=0`), or `null` if no video is available for this release.
+</ResponseField>
+
+---
+
+## GET /disco/{discogsId}/recomendaciones
+
+Returns up to 3 personalized vinyl recommendations based on the album currently being viewed. Authentication is required — the frontend sends the JWT stored in `localStorage` to allow the backend to tailor results to the user's listening history.
+
+### Path parameter
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `discogsId` | string | The Discogs release ID of the album being viewed. |
+
+### Authentication
+
+Required. Pass the JWT in the `Authorization` header:
+
+```bash
+curl https://api-tienda-vinilos.onrender.com/disco/12345/recomendaciones \
+  -H 'Authorization: Bearer <token>'
+```
+
+### Response
+
+An array of up to 3 vinyl objects, each with the same shape as items returned by `/recientes` (`discogs_id`, `titulo`, `artista`, `imagen_url`, `precio`, `genero`).

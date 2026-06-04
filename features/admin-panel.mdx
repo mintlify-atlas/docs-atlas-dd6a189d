@@ -1,0 +1,117 @@
+---
+title: "Admin Panel: Users, Sales, and Statistics"
+sidebarTitle: "Admin Panel"
+description: "The VinylVibes admin panel displays real-time statistics, a searchable user table with role management, and a sales table with status updates and order details."
+---
+
+The admin panel (`admin.html` + `admin.js`) provides a dashboard for managing users and sales. Access is restricted to users with `esAdmin === 'true'` or `esDemo === 'true'` in `localStorage`. Demo users see all data but cannot make changes — all action controls are rendered in a disabled state and a read-only banner is inserted below the header.
+
+## Access Control
+
+On page load, `admin.js` reads `vv_token`, `esAdmin`, and `esDemo` from `localStorage`. If neither `esAdmin` nor `esDemo` is `true`, an error toast reading "Acceso denegado." is shown and the user is redirected to `index.html` after 1.5 seconds.
+
+<Note>
+  The admin panel enforces access on the frontend as a UX guard. The backend independently validates the JWT for every admin endpoint (`GET /admin/usuarios`, `GET /admin/ventas`, `PUT`, `DELETE`, etc.), so removing the client-side check would not grant actual access to data.
+</Note>
+
+Users and sales data are both fetched in parallel on load via `Promise.all([cargarUsuarios(), cargarVentas()])`. Statistics are computed from those responses immediately after.
+
+## Statistics Dashboard
+
+Four stat cards are displayed at the top of the panel. All values are derived from the same two requests made at initialization — no additional API calls are needed for the stats.
+
+<CardGroup cols={4}>
+  <Card title="Total Users" icon="users">
+    Count of all entries returned by `GET /admin/usuarios`
+  </Card>
+  <Card title="Total Sales" icon="receipt">
+    Count of all entries returned by `GET /admin/ventas`
+  </Card>
+  <Card title="Revenue" icon="circle-dollar-sign">
+    Sum of `total` across all sales records
+  </Card>
+  <Card title="Pending Sales" icon="clock">
+    Count of sales where `estado === 'pendiente'`
+  </Card>
+</CardGroup>
+
+Stats are refreshed after any write operation (role change, user deletion, or status update) by calling `cargarStats()`, which re-fetches both endpoints and recomputes all four values.
+
+## User Management
+
+The **Usuarios** tab shows a paginated table of all registered accounts. Data is fetched once and filtered client-side.
+
+**Table columns:** ID · Name · Email · Role · Created At · Actions
+
+### Search
+
+`filtrarUsuarios(q)` filters the in-memory `_usuarios` array by name or email (case-insensitive) and re-renders the table without a network request.
+
+### Role Management
+
+```js
+async function cambiarRol(id, nuevoRol)
+```
+
+Calls `PUT /admin/usuarios/{id}/rol` with body `{ "rol": "nuevo_rol" }`. The current admin cannot remove their own `admin` role — this is enforced by decoding the JWT payload (`atob(token.split('.')[1])`) to compare the current user's ID with the target row's ID. If they match and `nuevoRol !== 'admin'`, the operation is blocked and the table is re-rendered to revert the select visually.
+
+Available roles:
+
+| Role | Description |
+|------|-------------|
+| `cliente` | Standard customer account |
+| `vendedor` | Seller account |
+| `admin` | Full admin panel access with write permissions |
+
+### User Deletion
+
+`confirmarEliminarUsuario(id, nombre)` replaces the action cell in-place with an inline confirmation prompt — **"¿Eliminar a \"{nombre}\"?"** — and two buttons: **Confirmar** and **Cancelar**. Confirming calls `DELETE /admin/usuarios/{id}`. On success, the user is removed from the local `_usuarios` array, the table is re-rendered, and statistics are refreshed.
+
+## Sales Management
+
+The **Ventas** tab shows all orders placed through the store. Data is fetched in parallel with users on page load.
+
+**Table columns:** ID · User · Total · Status · Date · Actions
+
+### Search
+
+`filtrarVentas(q)` filters the in-memory `_ventas` array by sale ID or customer name (case-insensitive) and re-renders the table client-side.
+
+### Status Updates
+
+```js
+async function cambiarEstadoVenta(id, nuevoEstado)
+```
+
+Calls `PUT /admin/ventas/{id}/estado` with body `{ "estado": "nuevo_estado" }`. On success, the local `_ventas` entry is updated and statistics are refreshed. Possible statuses:
+
+| Status | Meaning |
+|--------|---------|
+| `pendiente` | Order placed, not yet processed |
+| `pagada` | Payment confirmed |
+| `enviada` | Order shipped |
+| `entregada` | Order delivered to customer |
+| `cancelada` | Order cancelled |
+
+### Sale Detail Modal
+
+Clicking **"Ver detalle"** on any row calls `verDetalleVenta(id)`, which fetches `GET /admin/ventas/{id}` for the full order record. The detail modal displays:
+
+- **Order header** — sale ID, customer name, and current status badge
+- **Item list** — each line shows the album title, quantity (`×N`), and line subtotal
+- **Order total** — highlighted in amber
+- **Shipping address** — recipient name, full address with interior number when present, and delivery references
+
+## Demo / Read-Only Mode
+
+When `esDemo === true` and `esAdmin === false`, the panel enters read-only mode. A banner is inserted immediately below the admin header:
+
+```
+👁 Modo solo lectura — esta cuenta no puede realizar cambios
+```
+
+In this mode, every role `<select>` and action button across both the Users and Sales tables is rendered with the `disabled` attribute and reduced opacity (`opacity: 0.4; cursor: not-allowed`), preventing any write operations from being triggered.
+
+<Note>
+  Even if a demo user manually removes the `disabled` attribute via browser DevTools, the backend will reject any write requests because the JWT's role claim does not carry admin privileges.
+</Note>

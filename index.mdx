@@ -1,20 +1,71 @@
 ---
-title: "Introduction"
-description: "Welcome to your project"
+title: "VinylVibes: Premium Vinyl Store Documentation"
+sidebarTitle: "Home"
+description: "VinylVibes is a full-stack online vinyl record store. Learn how to run it locally, navigate its features, and integrate with its REST API."
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+VinylVibes is a premium vinyl record store built with vanilla HTML, CSS, and JavaScript. It features a dynamic catalog powered by the Discogs API, a shopping cart with cross-tab sync, a two-step checkout flow, JWT-based authentication, and an admin panel for managing users and sales — all deployable as a static site on GitHub Pages.
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Run VinylVibes locally in under five minutes — no build step required.
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    Understand how the frontend, backend API, and third-party services fit together.
+  </Card>
+  <Card title="Catalog & Search" icon="record-vinyl" href="/features/catalog">
+    Explore how the vinyl catalog, genre filters, and Discogs-powered search work.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/auth">
+    Full reference for every REST endpoint consumed by the frontend.
+  </Card>
+</CardGroup>
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+## What's inside
+
+VinylVibes is organized into three pages and a shared set of JavaScript modules:
+
+<CardGroup cols={3}>
+  <Card title="Catalog" icon="shop" href="/features/catalog">
+    Browse, filter by genre, and search vinyls powered by Discogs.
+  </Card>
+  <Card title="Cart & Checkout" icon="cart-shopping" href="/features/cart-and-checkout">
+    Add items, review the cart, and complete a two-step checkout.
+  </Card>
+  <Card title="Authentication" icon="lock" href="/features/authentication">
+    Login, registration, and JWT session management via localStorage.
+  </Card>
+  <Card title="Admin Panel" icon="gauge" href="/features/admin-panel">
+    Manage users and sales — with a read-only demo mode.
+  </Card>
+  <Card title="Design System" icon="palette" href="/configuration/design-system">
+    CSS custom properties, typography, and dark-mode tokens.
+  </Card>
+  <Card title="Roles & Access" icon="shield" href="/configuration/roles-and-access">
+    Four user roles and how they gate access across the app.
+  </Card>
+</CardGroup>
+
+## Get started in three steps
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/akibanks/tienda_musica_web.git
+    cd tienda_musica_web
+    ```
+  </Step>
+  <Step title="Serve the static files">
+    No build or install needed. Open `index.html` directly or use a local server:
+    ```bash
+    npx serve .
+    ```
+  </Step>
+  <Step title="Point to a backend">
+    The frontend calls `https://api-tienda-vinilos.onrender.com` by default. To use your own backend, update the `API` constant at the top of `script.js`, `login.js`, and `admin.js`.
+  </Step>
+</Steps>
+
+<Note>
+  A demo account is available for testing the admin panel: **username** `admin_chocolate` / **password** `chocolate`. This account has read-only access to all admin features.
+</Note>

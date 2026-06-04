@@ -1,0 +1,65 @@
+---
+title: "VinylVibes: Open-Source Vinyl Record Store Frontend"
+sidebarTitle: "Introduction"
+description: "VinylVibes is a static vinyl record store built with vanilla JS, HTML, and CSS. It integrates Discogs, Last.fm, and YouTube to power its catalog, stories, and media."
+---
+
+VinylVibes is a premium vinyl record store frontend built entirely with HTML5, CSS3, and vanilla JavaScript — no frameworks, no build tools, no package manager required. The interface is served as a static site hosted on GitHub Pages and communicates with a hosted REST API backend at `https://api-tienda-vinilos.onrender.com`. User session data and the shopping cart are persisted in `localStorage`, with Google Fonts (Playfair Display, DM Sans, DM Mono) providing the typographic system. The result is a fully functional e-commerce experience that runs anywhere a browser does, with zero infrastructure overhead on the frontend side.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card icon="record-vinyl" title="Discogs-Powered Catalog">
+    Every album in the catalog is sourced from the Discogs database. The backend proxies Discogs search and release data so the frontend displays real cover art, artist metadata, and genre tags without exposing API keys.
+  </Card>
+  <Card icon="filter" title="Genre Filtering">
+    Ten fixed genres — Rock, Jazz, Pop, Electronic, Hip Hop, Classical, Blues, Folk, Latin, and Reggae — are available as one-click filter buttons. Each genre request is cached client-side to avoid redundant network calls and supports paginated results.
+  </Card>
+  <Card icon="circle-play" title="Album Detail Modal with YouTube and Last.fm">
+    Clicking any album opens a detail modal that loads the album's YouTube video embed and a Last.fm biography in parallel. Recommended albums based on the user's browsing history are also surfaced in the same modal.
+  </Card>
+  <Card icon="cart-shopping" title="Shopping Cart with Cross-Tab Sync">
+    The cart is stored in `localStorage` under the key `vv_carrito` and rendered reactively on every change. A `storage` event listener keeps the cart synchronized across multiple open browser tabs in real time without any server round-trip.
+  </Card>
+  <Card icon="key" title="JWT Authentication">
+    Login and registration are handled by `POST /login` and `POST /registro`. On success, the backend returns a JWT that is stored in `localStorage` as `vv_token` and attached as an `Authorization: Bearer` header on every subsequent protected request.
+  </Card>
+  <Card icon="table-columns" title="Admin Panel with User and Sale Management">
+    The admin panel at `admin.html` provides real-time statistics (total users, total sales, total revenue, pending orders) alongside searchable tables for user management and order management, including role changes and sale status transitions.
+  </Card>
+  <Card icon="shield-halved" title="Role-Based Access Control">
+    VinylVibes supports four roles: `cliente`, `vendedor`, `admin`, and `demo`. Only `admin` and `demo` users can access the admin panel. The `demo` role grants read-only admin access — all write controls are disabled and a banner is displayed at the top of the admin layout.
+  </Card>
+  <Card icon="globe" title="Zero-Build Static Deployment">
+    The entire frontend is three HTML files, three JS modules, and one CSS file. There is no compilation, no bundler, and no server-side rendering. Push to the `main` branch and GitHub Pages serves it automatically.
+  </Card>
+</CardGroup>
+
+## Pages
+
+| Page | Purpose |
+|------|---------|
+| `index.html` | Main catalog page — carousel of recent additions, Discogs search with 500 ms debounce, genre filter tabs, album detail modal, shopping cart panel, purchase history panel, and checkout flow |
+| `login.html` | Authentication page — tabbed login and registration forms, animated vinyl decoration on wide screens, JWT storage on successful login |
+| `admin.html` | Admin panel — stats cards, user management table with role controls, sales management table with status transitions and order detail modal |
+
+## Scripts and Styles
+
+| File | Responsibility |
+|------|---------------|
+| `script.js` | Catalog rendering, Discogs search with debounce and pagination, genre filter with client-side caching, carousel navigation, album detail modal (YouTube embed + Last.fm story + recommendations), shopping cart CRUD, checkout flow (shipping modal → payment modal → `POST /checkout`), purchase history panel |
+| `login.js` | Login form submission (`POST /login`), registration form submission (`POST /registro`), JWT and session data storage in `localStorage`, redirect to `index.html` after successful login |
+| `admin.js` | Admin panel initialization and access guard, stats loading (`GET /admin/usuarios`, `GET /admin/ventas`), user table with role change (`PUT /admin/usuarios/:id/rol`) and user deletion (`DELETE /admin/usuarios/:id`), sales table with status change (`PUT /admin/ventas/:id/estado`) and order detail modal (`GET /admin/ventas/:id`), demo mode detection and banner injection |
+| `style.css` | Global styles and CSS custom properties (`--bg-surface`, `--text-primary`, `--amber`, `--border-subtle`, and more), typography scale using Playfair Display / DM Sans / DM Mono, component styles for cards, modals, badges, toasts, and pagination |
+
+## Backend
+
+The frontend connects exclusively to the REST API hosted at `https://api-tienda-vinilos.onrender.com`. All three JavaScript files declare the same constant at the top of the file:
+
+```js
+const API = 'https://api-tienda-vinilos.onrender.com';
+```
+
+<Note>
+  The frontend does not call Discogs, Last.fm, or YouTube directly. All third-party data is fetched and proxied by the backend, which surfaces it to the frontend through its own REST endpoints. Replacing the `API` constant in all three files is all that is needed to point the frontend at a different backend instance.
+</Note>

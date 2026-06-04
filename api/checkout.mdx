@@ -1,0 +1,139 @@
+---
+title: "Checkout Endpoint: Submit Orders to VinylVibes"
+sidebarTitle: "Checkout"
+description: "POST /checkout submits a VinylVibes order. Requires a valid JWT. Accepts cart items and shipping address; the backend calculates final prices server-side."
+---
+
+The `/checkout` endpoint is the final step in the VinylVibes purchase flow. It receives the cart items and shipping address from the frontend and creates a sale record in the backend. Prices are calculated server-side — the frontend does not send prices. Authentication is always required; unauthenticated requests are rejected immediately with a `401` response.
+
+## POST /checkout
+
+**Authentication:** Required — `Authorization: Bearer <token>`
+
+Creates a new order from the current cart contents and shipping address. On success, the backend returns the new order ID and a confirmation message.
+
+### Request Body
+
+<ParamField body="items" type="array" required>
+  Array of cart items to purchase. Each element must include the Discogs release ID and the quantity ordered. Prices are **not** included — the backend looks them up server-side.
+
+  <Expandable title="Item object fields">
+    <ParamField body="discogs_id" type="string" required>
+      The Discogs release ID of the vinyl record.
+    </ParamField>
+
+    <ParamField body="cantidad" type="integer" required>
+      Quantity ordered. Must be a positive integer.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="envio" type="object" required>
+  Shipping address for the order. All fields except `num_int` and `referencias` are required.
+
+  <Expandable title="Shipping address fields">
+    <ParamField body="nombre" type="string" required>
+      Recipient's full name.
+    </ParamField>
+
+    <ParamField body="calle" type="string" required>
+      Street name.
+    </ParamField>
+
+    <ParamField body="num_ext" type="string" required>
+      Exterior number.
+    </ParamField>
+
+    <ParamField body="num_int" type="string">
+      Interior number (optional — apartment, suite, etc.).
+    </ParamField>
+
+    <ParamField body="colonia" type="string" required>
+      Neighborhood (colonia).
+    </ParamField>
+
+    <ParamField body="cp" type="string" required>
+      Postal code.
+    </ParamField>
+
+    <ParamField body="ciudad" type="string" required>
+      City.
+    </ParamField>
+
+    <ParamField body="estado" type="string" required>
+      State or region.
+    </ParamField>
+
+    <ParamField body="referencias" type="string">
+      Delivery references (optional — landmarks, gate codes, etc.).
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "items": [
+    { "discogs_id": "12345", "cantidad": 1 },
+    { "discogs_id": "67890", "cantidad": 2 }
+  ],
+  "envio": {
+    "nombre": "Ana García",
+    "calle": "Av. Insurgentes Sur",
+    "num_ext": "1602",
+    "num_int": "8B",
+    "colonia": "Crédito Constructor",
+    "cp": "03940",
+    "ciudad": "Ciudad de México",
+    "estado": "CDMX",
+    "referencias": "Edificio azul, timbre 8B"
+  }
+}
+```
+
+### cURL Example
+
+```bash
+curl -X POST https://api-tienda-vinilos.onrender.com/checkout \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <token>' \
+  -d '{"items":[{"discogs_id":"12345","cantidad":1}],"envio":{"nombre":"Ana García","calle":"Insurgentes","num_ext":"1602","colonia":"CDMX","cp":"03940","ciudad":"Ciudad de México","estado":"CDMX"}}'
+```
+
+### Responses
+
+**200 — Success**
+
+```json
+{ "message": "Compra realizada con éxito", "venta_id": 42 }
+```
+
+**401 — Unauthorized**
+
+```json
+{ "error": "No autorizado" }
+```
+
+<Warning>
+  The frontend includes a card data collection form (number, name, expiry, CVV) for UX validation only. **Card data is NOT sent to the backend.** No real payment processing occurs at this endpoint.
+</Warning>
+
+<Note>
+  After a successful checkout, the frontend clears `vv_carrito` from `localStorage` and shows a success toast notification. The new order appears in `GET /mis-compras` immediately.
+</Note>
+
+### How the Frontend Calls This Endpoint
+
+The following code is taken directly from `script.js`. Note that only `discogs_id` and `cantidad` are sent per item — price is intentionally omitted.
+
+```js
+const resp = await fetch(`${API}/checkout`, {
+  method: 'POST',
+  headers: authHeaders(),
+  body: JSON.stringify({
+    items: carrito.map(i => ({ discogs_id: i.discogs_id, cantidad: i.cantidad })),
+    envio: datosEnvio,
+  }),
+});
+```

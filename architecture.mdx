@@ -1,0 +1,145 @@
+---
+title: "VinylVibes Architecture and System Design"
+sidebarTitle: "Architecture"
+description: "VinylVibes separates a static HTML/CSS/JS frontend from a REST API backend. Learn how pages, scripts, third-party APIs, and localStorage interact."
+---
+
+VinylVibes follows a classic static frontend and REST API architecture. The frontend is three HTML pages and three JavaScript modules that run entirely in the browser — no server-side rendering, no framework runtime, no build output. Every dynamic behavior (catalog data, search results, album details, cart persistence, authentication, and admin operations) is handled through `fetch` calls to a REST API hosted at `https://api-tienda-vinilos.onrender.com`. The frontend and backend are fully decoupled: swapping the backend requires changing one constant in each of the three JS files, and the frontend itself can be deployed to any static host.
+
+## System Layers
+
+The following diagram describes the runtime relationship between the browser, the backend, and external services:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Browser                                                    │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
+│  │  index.html  │  │  login.html  │  │   admin.html     │  │
+│  │  script.js   │  │  login.js    │  │   admin.js       │  │
+│  └──────┬───────┘  └──────┬───────┘  └────────┬─────────┘  │
+│         └─────────────────┴───────────────────┘            │
+│                            │  fetch() + Authorization: Bearer│
+│                    style.css (shared)                       │
+│                    localStorage (shared)                    │
+└────────────────────────────┼────────────────────────────────┘
+                             │ HTTPS / REST
+                             ▼
+            ┌────────────────────────────────┐
+            │  REST API                      │
+            │  https://api-tienda-vinilos    │
+            │        .onrender.com           │
+            └───────┬──────────┬─────────────┘
+                    │          │
+          ┌─────────▼──┐  ┌────▼──────┐  ┌────────────┐
+          │  Discogs   │  │  Last.fm  │  │  YouTube   │
+          │  API       │  │  API      │  │  (embed)   │
+          └────────────┘  └───────────┘  └────────────┘
+```
+
+The browser never calls Discogs, Last.fm, or YouTube directly. All third-party data is fetched and shaped by the backend before being returned to the frontend through the store's own REST endpoints.
+
+## Pages and Their Scripts
+
+### `index.html` + `script.js` — Main Catalog
+
+The main catalog page is the primary customer-facing surface. `script.js` initializes on page load by calling `GET /recientes` to populate the carousel of recently added albums, the novedades storytelling grid, and the initial catalog view. From there it handles:
+
+- **Debounced search** — the search input fires `GET /buscar?q=&pagina=` after a 500 ms delay, renders results with pagination controls, and resets to the recent catalog when the query is cleared.
+- **Genre filter** — ten fixed genre buttons each trigger `GET /genero/:genre?pagina=`. Results are cached in a client-side object keyed by `genre:page` so repeated clicks never issue duplicate network requests.
+- **Album detail modal** — `abrirModalDetalle(discogsId)` fetches `GET /disco/:id` for base data, then fires three parallel requests: `GET /disco/:id/historia` (Last.fm biography), `GET /disco/:id/video` (YouTube embed ID), and `GET /disco/:id/recomendaciones` (personalized recommendations).
+- **Storytelling modal** — `abrirModalStorytelling(discogsId)` opens the same modal in a presentation layout focused on the album biography, triggered from the novedades section.
+- **Shopping cart** — cart items are stored in `localStorage` as `vv_carrito`. Add, remove, and quantity-change operations write to `localStorage` and immediately re-render the cart panel. The `storage` event syncs changes across tabs.
+- **Checkout flow** — "Buy now" opens a shipping address form, then a card details form. On submission, `POST /checkout` is called with the item list and shipping object. The backend calculates the final price; the cart is cleared on success.
+- **Purchase history** — authenticated users can open a history panel that calls `GET /mis-compras` and renders paginated order summaries.
+
+### `login.html` + `login.js` — Authentication
+
+The login page presents two tabbed views — login and registration — in a single HTML file. `login.js` attaches listeners to both forms on `DOMContentLoaded`:
+
+- **Login** — `POST /login` with `{ nombre_usuario, password }`. On success, the response `{ token, nombre, es_admin, es_demo }` is decomposed and written to `localStorage`. The browser is then redirected to `index.html`.
+- **Registration** — `POST /registro` with `{ nombre_usuario, password }`. On success, a success message is shown and the tab switches back to login after 1.5 seconds.
+
+Both forms disable their submit button and update its label during the in-flight request to prevent duplicate submissions.
+
+### `admin.html` + `admin.js` — Admin Panel
+
+The admin panel is guarded at initialization: `admin.js` reads `vv_token`, `esAdmin`, and `esDemo` from `localStorage` on `DOMContentLoaded`. If the token is absent or neither flag is true, the user is redirected to `index.html`. Otherwise, two concurrent requests (`GET /admin/usuarios` and `GET /admin/ventas`) populate the stats cards and the two management tables.
+
+- **User management** — displays a searchable table of all users with columns for ID, name, email, role badge, and creation date. Admins can change a user's role via `PUT /admin/usuarios/:id/rol` or delete them via `DELETE /admin/usuarios/:id`. An inline confirmation replaces the action buttons before the destructive delete request is sent.
+- **Sales management** — displays a searchable table of all orders with order ID, customer name, total, status badge, and date. Admins can update the order status via `PUT /admin/ventas/:id/estado`. A "View detail" button opens a modal fetching `GET /admin/ventas/:id`, which shows the line items, totals, and full shipping address.
+- **Demo mode** — when `_esDemo` is true, all select dropdowns and action buttons in both tables are rendered as disabled. A read-only banner is injected into the DOM directly after the admin header element.
+
+### Shared: `style.css`
+
+All three pages link to a single `style.css` that defines CSS custom properties (design tokens) used across every component. Key tokens include `--bg-surface`, `--text-primary`, `--text-muted`, `--amber`, and `--border-subtle`. The three Google Fonts families — Playfair Display for headings and decorative elements, DM Sans for UI text and buttons, DM Mono for IDs, dates, and technical badges — are loaded in `index.html`, `login.html`, and `admin.html` via a shared `<link>` tag.
+
+## `localStorage` Keys
+
+Every piece of client-side state that persists across page loads or tabs is stored in `localStorage`. The following keys are used across the three JS modules:
+
+| Key | Content |
+|-----|---------|
+| `vv_token` | JWT returned by `POST /login`; attached as `Authorization: Bearer <token>` on all protected requests |
+| `usuarioLogueado` | Display name of the currently logged-in user, shown in the header nav |
+| `esAdmin` | `"true"` or `"false"` — controls visibility of the Admin button in the nav and access to `admin.html` |
+| `esDemo` | `"true"` or `"false"` — when `"true"`, the admin panel renders in read-only mode with all write controls disabled |
+| `vv_carrito` | JSON-serialized array of cart item objects, each containing `discogs_id`, `titulo`, `artista`, `imagen_url`, `precio`, and `cantidad` |
+
+To log out, `script.js` calls `localStorage.removeItem` on `vv_token`, `usuarioLogueado`, and `esAdmin`, then re-renders the header nav. The cart key is intentionally preserved so guest users do not lose items when logging out.
+
+## Cross-Tab Cart Synchronization
+
+The cart is designed to stay consistent when a user opens VinylVibes in more than one browser tab simultaneously. `script.js` registers a `storage` event listener at startup:
+
+```js
+window.addEventListener('storage', (e) => {
+    if (e.key === 'vv_carrito') {
+        carrito = JSON.parse(e.newValue || '[]');
+        renderizarCarrito();
+    }
+    if (e.key === 'usuarioLogueado' || e.key === 'esAdmin') {
+        actualizarInterfazUsuario();
+    }
+});
+```
+
+Whenever one tab writes a new value to `vv_carrito`, every other tab with VinylVibes open receives a `storage` event, parses the new cart state, and re-renders the cart panel. The same mechanism propagates login and logout events across tabs so the header nav updates everywhere without a page reload.
+
+## Authentication Flow
+
+The full sequence from login to an authenticated API request is as follows:
+
+1. The user submits the login form on `login.html`.
+2. `login.js` sends `POST /login` with `{ nombre_usuario, password }`.
+3. The backend validates the credentials and returns `{ token, nombre, es_admin, es_demo }`.
+4. `login.js` writes `vv_token`, `usuarioLogueado`, `esAdmin`, and `esDemo` to `localStorage`.
+5. The browser redirects to `index.html`.
+6. On any protected action (checkout, purchase history, recommendations, admin operations), the relevant JS file calls `authHeaders()`, which reads `vv_token` from `localStorage` and returns the headers object:
+
+```js
+function authHeaders() {
+    return {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('vv_token') || ''}`,
+    };
+}
+```
+
+7. The `Authorization` header is included in the `fetch` call. The backend validates the JWT and responds accordingly.
+
+## Third-Party Integrations
+
+VinylVibes surfaces data from three external services, all of which are proxied through the backend REST API. The frontend never holds API keys or calls these services directly.
+
+| Service | Data Surfaced to the Frontend |
+|---------|------------------------------|
+| **Discogs** | Album catalog data returned by `GET /recientes`, `GET /buscar`, `GET /genero/:genre`, and `GET /disco/:id` — includes title, artist, cover image URL, genre, style, and Discogs ID |
+| **Last.fm** | Album biography text returned by `GET /disco/:id/historia` and rendered in the storytelling modal |
+| **YouTube** | Video embed ID returned by `GET /disco/:id/video`; the frontend constructs the `youtube-nocookie.com/embed/:id` iframe URL from this ID |
+
+## Demo Mode
+
+<Note>
+  Users whose `esDemo` localStorage key is `"true"` can navigate to `admin.html` and view all statistics, user records, and sale orders — but they cannot make any changes. Every role selector and action button in the user and sales tables is rendered with the `disabled` attribute. A banner reading "👁 Modo solo lectura — esta cuenta no puede realizar cambios" is injected directly into the DOM at the top of the admin layout by `admin.js` at initialization. The demo account credentials are username `admin_chocolate` and password `chocolate`.
+</Note>

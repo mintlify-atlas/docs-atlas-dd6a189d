@@ -1,0 +1,103 @@
+---
+title: "Authentication, Registration, and JWT Sessions"
+sidebarTitle: "Authentication"
+description: "VinylVibes authenticates users with JWT tokens stored in localStorage. Login and registration are handled on login.html via POST /login and POST /registro."
+---
+
+Authentication in VinylVibes is handled by `login.html` and `login.js`. After a successful login, the backend returns a JWT token which is stored in `localStorage` and sent with every protected API request. The login page presents two views in a single screen — a **Login** tab and a **Register** tab — with a decorative animated vinyl record panel shown on wider viewports.
+
+<Warning>
+  VinylVibes stores JWTs in `localStorage`. This is intentional for simplicity but means the token is accessible to JavaScript on the page. For production systems, consider using `httpOnly` cookies to prevent token theft via XSS attacks.
+</Warning>
+
+## Login
+
+The login form (`#login-form`) submits a username and password to `POST /login`. On success, the response payload is written to `localStorage` and the user is redirected to `index.html`.
+
+**Request body:**
+
+```json
+{ "nombre_usuario": "string", "password": "string" }
+```
+
+**`localStorage` keys written on success:**
+
+| Key | Value |
+|-----|-------|
+| `vv_token` | JWT string returned by the backend |
+| `usuarioLogueado` | User's display name |
+| `esAdmin` | `"true"` or `"false"` |
+| `esDemo` | `"true"` or `"false"` |
+
+If the backend returns an error (for example, wrong credentials), the error message from `data.error` is displayed in red beneath the form. The submit button is disabled while the request is in flight and re-enabled regardless of outcome.
+
+## Registration
+
+The registration form (`#registro-form`) submits a new username and password to `POST /registro`. The password must be at least **6 characters** — this rule is enforced client-side before the request is made.
+
+**Request body:**
+
+```json
+{ "nombre_usuario": "string", "password": "string" }
+```
+
+On success, a green confirmation message is shown, the form is reset, and the view automatically switches to the Login tab after **1.5 seconds** so the user can sign in immediately.
+
+On failure, the backend's `data.error` message is displayed in red. Common failure reasons include a username that is already taken.
+
+## Using the JWT
+
+All protected requests across the app include the JWT via `authHeaders()`. This function is defined in both `script.js` and `admin.js` and reads the token from `localStorage` at call time.
+
+```js
+function authHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${localStorage.getItem('vv_token') || ''}`,
+  };
+}
+```
+
+Pass the result directly as the `headers` option to `fetch`:
+
+```js
+const resp = await fetch(`${API}/mis-compras`, { headers: authHeaders() });
+```
+
+## Signing Out
+
+Call `cerrarSesion()` from anywhere in the catalog page to end the session. It removes all session-related keys from `localStorage` and updates the navbar to the logged-out state.
+
+Keys removed on sign-out:
+
+- `vv_token`
+- `usuarioLogueado`
+- `esAdmin`
+- `esDemo`
+- `vv_carrito`
+
+<Note>
+  The cart is also cleared on sign-out so that a subsequent user on the same device does not inherit a previous session's items.
+</Note>
+
+## Demo Account
+
+VinylVibes ships with a pre-seeded demo account that grants read-only access to the admin panel:
+
+<CardGroup cols={2}>
+  <Card title="Username" icon="user">
+    `admin_chocolate`
+  </Card>
+  <Card title="Password" icon="lock">
+    `chocolate`
+  </Card>
+</CardGroup>
+
+The demo account has the following role flags set by the backend on login:
+
+| Flag | Value |
+|------|-------|
+| `esAdmin` | `false` |
+| `esDemo` | `true` |
+
+This combination grants access to the admin panel UI but disables all write operations (role changes, user deletion, status updates). See the [Admin Panel](/features/admin-panel) page for details on how demo mode is enforced.

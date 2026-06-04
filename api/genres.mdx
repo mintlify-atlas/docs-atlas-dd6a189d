@@ -1,0 +1,70 @@
+---
+title: "Genre Filtering Endpoint for the Vinyl Catalog"
+sidebarTitle: "Genres"
+description: "GET /genero/{genre} returns a paginated list of vinyl records filtered by genre. Supports 10 fixed genres including Rock, Jazz, Pop, Electronic, and Classical."
+---
+
+The genre endpoint powers the genre filter section on the VinylVibes main page. When the page loads, the frontend initializes a row of 10 genre buttons and immediately fetches the first page of the default genre. Subsequent genre selections call this endpoint, and results are cached in memory for the duration of the session to avoid redundant requests.
+
+---
+
+## GET /genero/{genre}
+
+Returns a paginated list of vinyl records belonging to a specific genre. The frontend renders 20 items per page and displays pagination controls below the genre grid when more than one page is available.
+
+### Path parameter
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `genre` | string | URL-encoded genre name. Must be one of the 10 supported values listed below. |
+
+### Query parameter
+
+<ParamField query="pagina" type="integer">
+  Page number to retrieve. Defaults to `1` if omitted.
+</ParamField>
+
+### Supported genres
+
+The following are the only accepted values for the `{genre}` path segment, matching the `GENEROS_FIJOS` constant defined in `script.js`:
+
+`Rock` · `Jazz` · `Pop` · `Electronic` · `Hip Hop` · `Classical` · `Blues` · `Folk` · `Latin` · `Reggae`
+
+### Example request
+
+```bash
+curl 'https://api-tienda-vinilos.onrender.com/genero/Jazz?pagina=1'
+```
+
+### Response fields
+
+<ResponseField name="resultados" type="array">
+  Array of vinyl objects for the requested page. Each object has the same shape as items returned by `/recientes`: `discogs_id`, `titulo`, `artista`, `imagen_url`, `precio`, and `genero`.
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total number of vinyl records matching the genre filter across all pages.
+</ResponseField>
+
+<ResponseField name="paginas" type="integer">
+  Total number of pages available for this genre.
+</ResponseField>
+
+<ResponseField name="pagina" type="integer">
+  The current page number reflected back in the response.
+</ResponseField>
+
+### Response example
+
+```json
+{
+  "resultados": [...],
+  "total": 48,
+  "paginas": 3,
+  "pagina": 1
+}
+```
+
+<Note>
+  The frontend renders 20 items per page (`ITEMS_POR_PAGINA = 20`). Pagination controls — **← Anterior** and **Siguiente →** — are rendered below the genre grid whenever `paginas` is greater than 1.
+</Note>

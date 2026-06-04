@@ -1,47 +1,102 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with VinylVibes in Minutes"
+sidebarTitle: "Quickstart"
+description: "Run VinylVibes locally in three steps — no build tools, no package manager, no configuration required. Just clone and serve."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
+VinylVibes is a static site. There is no build step, no `npm install`, and no environment file to configure. The entire frontend is plain HTML, CSS, and JavaScript — clone the repository, start any static file server, and the store is running. The only external dependency is the REST API at `https://api-tienda-vinilos.onrender.com`, which is already configured in all three JavaScript files and is publicly reachable.
 
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+## Running Locally
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Clone the repository">
+    Clone the repository from GitHub and navigate into the project directory.
 
     ```bash
-    npm install your-package
+    git clone https://github.com/akibanks/tienda_musica_web.git && cd tienda_musica_web
     ```
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
-    ```
+  <Step title="Start a local file server">
+    Serve the project with any static file server. The two most common options require nothing beyond Node.js or Python, both of which are typically already installed.
+
+    <CodeGroup>
+      ```bash npx serve
+      npx serve .
+      ```
+
+      ```bash Python HTTP server
+      python -m http.server 8080
+      ```
+    </CodeGroup>
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
 
-    ```bash
-    your-cli start
-    ```
+  <Step title="Open the app in your browser">
+    Navigate to the address printed by your chosen server.
+
+    - **npx serve** → [http://localhost:3000](http://localhost:3000)
+    - **Python HTTP server** → [http://localhost:8080](http://localhost:8080)
+
+    The main catalog page will load immediately. The carousel, genre filters, and search bar are all functional as soon as the page opens — no login required to browse.
+  </Step>
+
+  <Step title="Log in with the demo account">
+    To explore the admin panel and protected features, sign in with the built-in demo account.
+
+    | Field | Value |
+    |-------|-------|
+    | Username | `admin_chocolate` |
+    | Password | `chocolate` |
+
+    This account has the `demo` role, which grants read-only access to the admin panel. All write controls (role changes, user deletion, sale status updates) are visible but disabled, and a read-only banner is displayed at the top of the admin layout.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Connecting to Your Own Backend
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+The `API` constant at the top of `script.js`, `login.js`, and `admin.js` controls which backend the frontend talks to. By default, all three files point to the hosted instance:
+
+```js script.js
+const API = 'https://api-tienda-vinilos.onrender.com';
+```
+
+To use a local or custom backend, replace the value of `API` in all three files. For example, if you are running the backend locally on port 4000:
+
+```js
+const API = 'http://localhost:4000';
+```
+
+<Note>
+  You must update the constant in **all three files** — `script.js`, `login.js`, and `admin.js` — for the frontend to route every request correctly. Each file declares its own `API` constant independently at the top of the file.
+</Note>
+
+## Token Storage and Protected Requests
+
+After a successful login, `login.js` stores the JWT returned by `POST /login` in `localStorage` under the key `vv_token`. Every subsequent request to a protected endpoint reads that token and attaches it as a Bearer header:
+
+```js
+function authHeaders() {
+    return {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('vv_token') || ''}`,
+    };
+}
+```
+
+This header is added automatically by `script.js` (for checkout, recommendations, and purchase history) and by `admin.js` (for all admin endpoints). You do not need to manage the token manually — it is set after login and cleared on logout.
+
+<Tip>
+  To log out programmatically or reset a stuck session, remove the relevant keys from `localStorage` in the browser console: `localStorage.removeItem('vv_token')`, `localStorage.removeItem('usuarioLogueado')`, `localStorage.removeItem('esAdmin')`, and `localStorage.removeItem('esDemo')`.
 </Tip>
+
+## Deploying to GitHub Pages
+
+VinylVibes requires no build or deployment configuration for GitHub Pages. Push your changes to the `main` branch and GitHub Pages serves the static files automatically.
+
+```bash
+git add .
+git commit -m "your changes"
+git push origin main
+```
+
+GitHub Pages will detect the repository and begin serving `index.html` as the site root within minutes of the push. No `gh-pages` branch, no Actions workflow, and no configuration file is needed.

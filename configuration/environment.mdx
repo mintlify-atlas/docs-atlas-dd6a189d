@@ -1,0 +1,68 @@
+---
+title: "Configure VinylVibes for Local and Production Environments"
+sidebarTitle: "Environment"
+description: "VinylVibes has a single configuration point: the API base URL set in three JavaScript files. Learn how to change it for local development or a custom backend."
+---
+
+VinylVibes requires no environment files, build tools, or configuration management. The only configurable value is the backend API base URL, declared as a top-level constant in each JavaScript module. Everything else — authentication state, cart persistence, and session data — is handled through `localStorage` at runtime with no additional setup.
+
+## API Base URL
+
+All three JavaScript modules declare an identical `API` constant at the very top of the file. Every `fetch` call in the frontend is constructed relative to this constant, so changing it in all three files is sufficient to point the entire app at a different backend.
+
+<CodeGroup>
+
+```js script.js
+const API = 'https://api-tienda-vinilos.onrender.com';
+```
+
+```js login.js
+const API = 'https://api-tienda-vinilos.onrender.com';
+```
+
+```js admin.js
+const API = 'https://api-tienda-vinilos.onrender.com';
+```
+
+</CodeGroup>
+
+To point VinylVibes at a different backend, replace the value of `API` in all three files. No other changes are required.
+
+## Running with a Local Backend
+
+<Steps>
+  <Step title="Start your local backend server">
+    Spin up your backend on any local port. For example, if your backend listens on port 4000, it will be reachable at `http://localhost:4000`.
+  </Step>
+  <Step title="Update the API constant in all three JS files">
+    In `script.js`, `login.js`, and `admin.js`, replace the production URL with your local address:
+
+    ```js
+    const API = 'http://localhost:4000';
+    ```
+  </Step>
+  <Step title="Ensure CORS headers are configured">
+    If the backend is served from a different port or origin than your frontend, the backend must include CORS headers that allow requests from your frontend's origin. Without this, all `fetch` calls will be blocked by the browser.
+  </Step>
+</Steps>
+
+<Warning>
+  Do not commit the backend URL change if using a local URL like `localhost`. The production URL (`https://api-tienda-vinilos.onrender.com`) should remain in source for GitHub Pages deployments.
+</Warning>
+
+## GitHub Pages Deployment
+
+The frontend is deployed automatically on push to `main`. No additional configuration is required — GitHub Pages picks up the static files and serves them directly.
+
+The redirect logic in `login.js` uses `window.location.pathname` to construct base-relative URLs, making it compatible with both root-level and subdirectory GitHub Pages deployments:
+
+```js
+const base = window.location.pathname.replace('/login.html', '');
+window.location.href = base + '/index.html';
+```
+
+This means a successful login will always redirect to the correct `index.html` whether the site is hosted at `https://user.github.io/` or `https://user.github.io/vinylvibes/`.
+
+<Tip>
+  Use `npx serve .` for local development — it serves the static files with a proper dev server that handles routing correctly, avoiding `file://` protocol issues with `fetch`.
+</Tip>

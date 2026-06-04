@@ -1,0 +1,71 @@
+---
+title: "User Roles and Access Control in VinylVibes"
+sidebarTitle: "Roles & Access"
+description: "VinylVibes has four user roles: cliente, vendedor, admin, and demo. Roles gate access to the admin panel and determine which UI controls are enabled."
+---
+
+VinylVibes uses a simple four-role access model. Roles are assigned per user in the backend and surfaced to the frontend via the JWT payload. The frontend reads role flags from `localStorage` after login to conditionally render UI elements — showing or hiding the admin panel link in the nav, disabling action controls for demo users, and preventing admins from removing their own privileges.
+
+## Role Overview
+
+| Role | Admin Panel Access | Can Make Changes | Description |
+|------|--------------------|-----------------|-------------|
+| `cliente` | No | — | Standard customer account |
+| `vendedor` | No | — | Seller account (reserved for future use) |
+| `admin` | Yes | Yes | Full admin access, can manage users and sales |
+| `demo` | Yes (read-only) | No | Demo account with read-only admin view |
+
+## How Roles Are Stored
+
+After a successful login, `login.js` stores two boolean flags in `localStorage` derived from the server's response payload:
+
+```js
+localStorage.setItem('esAdmin', data.es_admin ? 'true' : 'false');
+localStorage.setItem('esDemo',  data.es_demo  ? 'true' : 'false');
+```
+
+Both `esAdmin` and `esDemo` can be `true` simultaneously for a given user account, though in practice the demo account uses `esDemo: true` with `esAdmin: false`. The nav in `index.html` shows the **Admin** button whenever either flag is `'true'`.
+
+## Admin Access Check
+
+`admin.js` performs an access check on every page load, before any data is fetched. If the user has no valid token, or if neither `esAdmin` nor `esDemo` is set to `'true'`, they are redirected away from the admin panel immediately:
+
+```js
+const esAdmin = localStorage.getItem('esAdmin') === 'true';
+const esDemo  = localStorage.getItem('esDemo')  === 'true';
+if (!token || (!esAdmin && !esDemo)) {
+  // redirect to index.html
+}
+```
+
+## Demo Mode Behavior
+
+When `esDemo` is `true` and `esAdmin` is `false`, the admin panel enters read-only mode. The following restrictions are applied at render time:
+
+- A read-only banner is inserted directly below the admin header, styled with the amber accent color.
+- Role dropdowns in the users table are rendered with the `disabled` attribute and reduced opacity (`0.4`).
+- Delete buttons in the users table are rendered with the `disabled` attribute and reduced opacity (`0.4`).
+- Sale status dropdowns in the sales table are rendered with the `disabled` attribute.
+- The demo user cannot change any user's role or delete any user record.
+
+<Note>
+  The demo account credentials are `admin_chocolate` / `chocolate`. This account has `esDemo: true` and read-only admin panel access.
+</Note>
+
+## Changing a User's Role
+
+Admin users can change any other user's role directly from the users table in the admin panel. The frontend enforces one additional guard: an admin cannot remove their own `admin` role. Before sending the role-change request to the backend, `admin.js` parses the currently authenticated user's ID from the stored JWT and compares it to the target user's ID:
+
+```js
+const miId = JSON.parse(atob(localStorage.getItem('vv_token').split('.')[1])).id;
+if (id === miId && nuevoRol !== 'admin') {
+  mostrarToast('No puedes quitarte el rol de admin.', 'error');
+  return;
+}
+```
+
+If the IDs match and the new role is anything other than `admin`, the change is blocked client-side and the select reverts to its previous value by re-fetching the user list.
+
+<Warning>
+  Role enforcement on the frontend is for UX only. The backend validates the JWT and the user's role on every admin endpoint. Do not rely solely on frontend checks for security.
+</Warning>

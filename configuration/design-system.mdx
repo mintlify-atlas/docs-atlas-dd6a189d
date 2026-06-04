@@ -1,0 +1,93 @@
+---
+title: "VinylVibes Design System: CSS Variables and Typography"
+sidebarTitle: "Design System"
+description: "VinylVibes uses CSS custom properties for a consistent dark theme across all three pages. Covers color tokens, typography (Playfair Display, DM Sans, DM Mono), spacing, and animation."
+---
+
+VinylVibes has a unified dark design system defined entirely through CSS custom properties in `style.css`. All three pages (`index.html`, `login.html`, `admin.html`) reference the same stylesheet and the same tokens — there are no per-page overrides or secondary theme files. Every color, radius, shadow, and animation duration in the UI is derived from the variables defined in the `:root` block.
+
+## Color Tokens
+
+The color palette is built around two warm accent colors — amber and coral — layered over a deep zinc-black background stack.
+
+| Variable | Value | Usage |
+|----------|-------|-------|
+| `--bg-void` | `#09090b` | Deepest background layer |
+| `--bg-base` | `#0f0f12` | Page background |
+| `--bg-surface` | `#16161b` | Cards and panels |
+| `--bg-raised` | `#1e1e26` | Raised elements, inputs |
+| `--bg-hover` | `#25252f` | Hover states |
+| `--text-primary` | `#f4f0e8` | Main text |
+| `--text-secondary` | `#a09890` | Secondary labels |
+| `--text-muted` | `#5c5750` | Muted/disabled text |
+| `--amber` | `#f59e0b` | Primary accent (amber) |
+| `--amber-dim` | `#78490a` | Dimmed amber |
+| `--amber-glow` | `rgba(245,158,11,0.15)` | Amber glow effect |
+| `--coral` | `#ff6b6b` | Secondary accent (coral) |
+| `--coral-dim` | `#7b2c2c` | Dimmed coral |
+| `--coral-glow` | `rgba(255,107,107,0.12)` | Coral glow effect |
+| `--grad-accent` | `linear-gradient(135deg, #f59e0b, #ff6b6b)` | Amber→coral gradient |
+| `--border-subtle` | `rgba(244,240,232,0.06)` | Subtle borders |
+| `--border-dim` | `rgba(244,240,232,0.12)` | Dimmed borders |
+| `--border-accent` | `rgba(245,158,11,0.35)` | Amber-tinted borders |
+
+## Border Radius Tokens
+
+Four radius steps cover the full range from compact interactive elements to large modal containers.
+
+| Variable | Value |
+|----------|-------|
+| `--r-sm` | `8px` |
+| `--r-md` | `14px` |
+| `--r-lg` | `20px` |
+| `--r-xl` | `28px` |
+
+## Shadow Tokens
+
+Three pre-composed shadow values handle the most common elevation contexts in the UI.
+
+| Variable | Value |
+|----------|-------|
+| `--shadow-card` | `0 4px 24px rgba(0,0,0,0.6), 0 1px 4px rgba(0,0,0,0.4)` |
+| `--shadow-glow` | `0 0 40px rgba(245,158,11,0.2), 0 8px 32px rgba(0,0,0,0.7)` |
+| `--shadow-modal` | `0 24px 80px rgba(0,0,0,0.8), 0 0 0 1px var(--border-subtle)` |
+
+## Typography
+
+VinylVibes loads three typefaces from Google Fonts. Each font is assigned to a specific semantic layer of the UI, keeping decorative, interface, and data typography visually distinct.
+
+| Font | Weight | Usage |
+|------|--------|-------|
+| Playfair Display | 400, 700, 900 (+ italic) | Page titles, hero elements, decorative headings |
+| DM Sans | 300, 400, 500, 600 | UI text, buttons, labels, body copy |
+| DM Mono | 400, 500 | IDs, dates, badges, technical data, prices |
+
+## Animation Tokens
+
+A shared easing function and two duration steps are used across all transitions in the stylesheet.
+
+| Variable | Value |
+|----------|-------|
+| `--ease` | `cubic-bezier(0.22, 1, 0.36, 1)` |
+| `--t-fast` | `0.18s` |
+| `--t-med` | `0.32s` |
+
+`--t-fast` is used for hover states and micro-interactions. `--t-med` is used for larger transitions such as modal entry animations and card transforms.
+
+## Using Tokens in Custom Styles
+
+Reference any token via `var(--token-name)` in any CSS rule. Because all tokens are declared on `:root`, they are available in any selector scope without any additional imports or configuration.
+
+```css
+.my-element {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  transition: background var(--t-fast) var(--ease);
+}
+```
+
+<Tip>
+  The amber+coral gradient `--grad-accent` is used for logo text, admin panel headings, and the hero section. Apply it with `-webkit-background-clip: text; -webkit-text-fill-color: transparent;` for gradient text effects.
+</Tip>

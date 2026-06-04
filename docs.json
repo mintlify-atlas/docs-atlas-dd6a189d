@@ -1,72 +1,88 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "VinylVibes",
+  "theme": "almond",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
-  },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "primary": "#f59e0b",
+    "light": "#fbbf24",
+    "dark": "#b45309"
   },
   "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
     "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "type": "github",
+      "href": "https://github.com/akibanks/tienda_musica_web"
     }
-  },
-  "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "github": "https://github.com/akibanks/tienda_musica_web"
     }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "architecture"
+            ]
+          },
+          {
+            "group": "Pages & Features",
+            "pages": [
+              "features/catalog",
+              "features/cart-and-checkout",
+              "features/authentication",
+              "features/admin-panel"
+            ]
+          },
+          {
+            "group": "Configuration & Design",
+            "pages": [
+              "configuration/environment",
+              "configuration/design-system",
+              "configuration/roles-and-access"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Auth",
+            "pages": [
+              "api/auth"
+            ]
+          },
+          {
+            "group": "Catalog",
+            "pages": [
+              "api/catalog",
+              "api/genres",
+              "api/search"
+            ]
+          },
+          {
+            "group": "Shopping",
+            "pages": [
+              "api/checkout",
+              "api/purchase-history"
+            ]
+          },
+          {
+            "group": "Admin",
+            "pages": [
+              "api/admin-users",
+              "api/admin-sales"
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

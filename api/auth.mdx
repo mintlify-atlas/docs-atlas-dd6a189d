@@ -1,0 +1,117 @@
+---
+title: "Authentication API: Login and Registration Endpoints"
+sidebarTitle: "Auth"
+description: "POST /login authenticates a VinylVibes user and returns a JWT. POST /registro creates a new account. Both endpoints require a JSON body with nombre_usuario and password."
+---
+
+VinylVibes uses JWT-based authentication. Two endpoints handle auth: `POST /login` returns a token and session metadata, and `POST /registro` creates a new account. The JWT must be included in all protected requests via the `Authorization: Bearer` header. Tokens are stored in `localStorage` by the frontend after a successful login and cleared on logout.
+
+---
+
+## POST /login
+
+Authenticates an existing user and returns a signed JWT alongside session metadata. The frontend stores the token and user state in `localStorage` immediately after a successful response.
+
+### Request body
+
+<ParamField body="nombre_usuario" type="string" required>
+  The account username.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  The account password.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api-tienda-vinilos.onrender.com/login \
+  -H 'Content-Type: application/json' \
+  -d '{"nombre_usuario": "admin_chocolate", "password": "chocolate"}'
+```
+
+### Response fields
+
+<ResponseField name="token" type="string">
+  Signed JWT to include in subsequent authenticated requests via `Authorization: Bearer <token>`.
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  The user's display name as stored in the database.
+</ResponseField>
+
+<ResponseField name="es_admin" type="boolean">
+  `true` if the user holds the `admin` role.
+</ResponseField>
+
+<ResponseField name="es_demo" type="boolean">
+  `true` if the user holds the `demo` (read-only admin) role.
+</ResponseField>
+
+### Success response (200)
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "nombre": "admin_chocolate",
+  "es_admin": false,
+  "es_demo": true
+}
+```
+
+### Error response (401)
+
+```json
+{ "error": "Credenciales inválidas" }
+```
+
+### localStorage keys written after login
+
+After a successful `/login` response, `login.js` writes the following keys to `localStorage`:
+
+| Key | Value |
+|-----|-------|
+| `vv_token` | `token` from the response |
+| `usuarioLogueado` | `nombre` from the response |
+| `esAdmin` | `"true"` if `es_admin` is `true`, otherwise `"false"` |
+| `esDemo` | `"true"` if `es_demo` is `true`, otherwise `"false"` |
+
+---
+
+## POST /registro
+
+Creates a new user account. The frontend validates that the password is at least 6 characters before sending the request.
+
+### Request body
+
+<ParamField body="nombre_usuario" type="string" required>
+  The desired username for the new account.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  The account password. Must be at least 6 characters long.
+</ParamField>
+
+### Example request
+
+```bash
+curl -X POST https://api-tienda-vinilos.onrender.com/registro \
+  -H 'Content-Type: application/json' \
+  -d '{"nombre_usuario": "nuevo_usuario", "password": "mi_clave_123"}'
+```
+
+### Success response (200)
+
+```json
+{ "message": "Cuenta creada exitosamente" }
+```
+
+### Error response (400)
+
+```json
+{ "error": "El usuario ya existe" }
+```
+
+<Note>
+  New accounts are created with the `cliente` role by default. An admin must manually elevate the role via the admin panel.
+</Note>

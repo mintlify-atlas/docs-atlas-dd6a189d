@@ -1,0 +1,129 @@
+---
+title: "Shopping Cart and Two-Step Checkout Flow"
+sidebarTitle: "Cart & Checkout"
+description: "VinylVibes persists the shopping cart in localStorage and syncs it across browser tabs. Checkout collects a shipping address, then card data, then posts to POST /checkout."
+---
+
+The cart system in VinylVibes stores items in `localStorage` under the key `vv_carrito` and syncs across browser tabs using the `storage` event. Checkout is a two-modal flow: the user first provides a shipping address, then enters card details, and finally the order is submitted to `POST /checkout`. Cart state is initialized from `localStorage` immediately when `script.js` loads, so items persist across page refreshes and browser sessions.
+
+## Adding to Cart
+
+Items can be added to the cart from two places:
+
+- **Catalog grid** — `agregarAlCarrito(disco)` is called directly from a card's action button. If the same `discogs_id` is already in the cart, its `cantidad` is incremented rather than adding a duplicate entry.
+- **Album detail modal** — `agregarAlCarritoDesdeModal()` reads `discoActivo` (the currently open album object) and delegates to `agregarAlCarrito`. The modal is then closed automatically.
+- **"Buy Now" from modal** — `comprarDesdeModal()` adds the item and immediately opens the shipping modal, bypassing the cart panel entirely.
+
+## Cart Item Structure
+
+Each entry in the `vv_carrito` array follows this shape:
+
+```json
+{
+  "discogs_id": "string",
+  "titulo": "string",
+  "artista": "string",
+  "imagen_url": "string",
+  "precio": "number",
+  "cantidad": "number"
+}
+```
+
+## Cart Panel
+
+The cart panel (`#cart-panel`) slides in from the right side of the screen and is toggled by `toggleCarrito()`. When opened, it displays all current items with the following controls:
+
+- **Quantity adjustment** — `cambiarCantidad(discogsId, delta)` adds or subtracts from the item's `cantidad`. If quantity drops to 0, the item is removed automatically.
+- **Item removal** — `eliminarDelCarrito(discogsId)` removes the item immediately.
+- **Clear cart** — `vaciarCarrito()` shows a confirmation dialog before emptying the entire cart.
+- **Running total** — computed from `precio × cantidad` for all items, displayed in `#carrito-total`.
+- **Proceed to checkout** — the "Proceder al Pago" button calls `abrirCheckoutDesdeCarrito()`.
+
+<Note>
+  The cart badge (`#carrito-count`) in the navbar always reflects the total number of individual units across all cart lines, not the number of distinct titles.
+</Note>
+
+## Cross-Tab Sync
+
+The `storage` event listener on `window` watches for changes to `vv_carrito` made in other browser tabs and immediately calls `renderizarCarrito()` to keep the UI in sync. This means adding an item in one tab will instantly update the cart badge and panel in any other open tab.
+
+```js
+window.addEventListener('storage', (e) => {
+  if (e.key === 'vv_carrito') {
+    carrito = JSON.parse(e.newValue || '[]');
+    renderizarCarrito();
+  }
+});
+```
+
+The same listener also watches `usuarioLogueado` and `esAdmin` to refresh the navbar when a login or logout occurs in another tab.
+
+## Checkout Flow
+
+<Steps>
+  <Step title="Open shipping modal">
+    The user clicks **"Proceder al Pago"** in the cart panel, which calls `abrirCheckoutDesdeCarrito()`. This closes the cart panel and opens the shipping address modal. The form collects:
+
+    - Recipient name (`nombre`)
+    - Street (`calle`)
+    - Exterior number (`num_ext`) — required
+    - Interior number (`num_int`) — optional
+    - Neighborhood / Colonia (`colonia`)
+    - Postal code (`cp`)
+    - City (`ciudad`)
+    - State (`estado`)
+    - Delivery references (`referencias`) — optional
+
+    All required fields are validated before the form can be submitted. Validation is client-side only.
+  </Step>
+
+  <Step title="Enter card details">
+    After the shipping form is submitted, the shipping data is stored in `_datosEnvio` and the payment modal opens. The card form includes:
+
+    - Card number (formatted in groups of 4 as the user types)
+    - Cardholder name (uppercased automatically)
+    - Expiry date in `MM/YY` format (slash inserted automatically)
+    - CVV (3–4 digits)
+
+    A live **card preview** updates in real time as the user types into each field, mirroring the number, name, and expiry on a stylized card graphic.
+  </Step>
+
+  <Step title="Submit order to backend">
+    The user clicks the **"Pagar $…"** button, triggering `procesarPago()`. Client-side validation checks that all card fields are correctly formatted. If validation passes, the function POSTs to `POST /checkout` with the cart items and shipping data.
+
+    The backend calculates final prices server-side. The frontend sends only `discogs_id` and `cantidad` per item — **no prices are sent in the request body**.
+  </Step>
+
+  <Step title="Order confirmed">
+    On a successful `2xx` response, the cart is cleared from both memory and `localStorage`, a success toast is shown, and both the payment and detail modals are closed. On failure, the error message from the backend is shown as an error toast and the button is re-enabled so the user can retry.
+  </Step>
+</Steps>
+
+## Checkout Request Payload
+
+```json
+{
+  "items": [
+    { "discogs_id": "string", "cantidad": "number" }
+  ],
+  "envio": {
+    "nombre": "string",
+    "calle": "string",
+    "num_ext": "string",
+    "num_int": "string",
+    "colonia": "string",
+    "cp": "string",
+    "ciudad": "string",
+    "estado": "string",
+    "referencias": "string"
+  }
+}
+```
+
+<Note>
+  Card data is validated client-side only (format checks). No real payment processing occurs — VinylVibes is a demonstration storefront.
+</Note>
+
+<Tip>
+  The checkout endpoint requires a valid JWT token in the `Authorization: Bearer <token>` header. Unauthenticated users are redirected to `login.html` before the shipping modal opens.
+</Tip>

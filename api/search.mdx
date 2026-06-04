@@ -1,0 +1,83 @@
+---
+title: "Vinyl Search Endpoint with Pagination"
+sidebarTitle: "Search"
+description: "GET /buscar queries the Discogs catalog for vinyl records matching a search term. Results are paginated. The frontend applies a 500ms debounce before calling this endpoint."
+---
+
+The search endpoint allows querying the Discogs catalog by artist name or album title. The VinylVibes frontend uses a 500ms debounce before calling this endpoint to avoid excessive API calls while the user is typing. Clearing the search input cancels any pending request and restores the catalog to its initial `/recientes` state without making a network call.
+
+---
+
+## GET /buscar
+
+Searches the vinyl catalog by artist name or album title and returns paginated results. This endpoint is used both by the main catalog search bar and by the **Novedades & Historias** section search.
+
+### Query parameters
+
+<ParamField query="q" type="string" required>
+  The search term to match against artist names and album titles.
+</ParamField>
+
+<ParamField query="pagina" type="integer">
+  Page number to retrieve. Defaults to `1` if omitted.
+</ParamField>
+
+### Example request
+
+```bash
+curl 'https://api-tienda-vinilos.onrender.com/buscar?q=Miles+Davis&pagina=1'
+```
+
+### Response fields
+
+<ResponseField name="resultados" type="array">
+  Array of matching vinyl objects for the current page. Each object has the same shape as items returned by `/recientes`: `discogs_id`, `titulo`, `artista`, `imagen_url`, `precio`, and `genero`.
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total number of records matching the search term across all pages.
+</ResponseField>
+
+<ResponseField name="paginas" type="integer">
+  Total number of pages available for this query.
+</ResponseField>
+
+### Response example
+
+```json
+{
+  "resultados": [
+    {
+      "discogs_id": "12345",
+      "titulo": "Kind of Blue",
+      "artista": "Miles Davis",
+      "imagen_url": "https://...",
+      "precio": 29.99,
+      "genero": "Jazz"
+    }
+  ],
+  "total": 12,
+  "paginas": 1
+}
+```
+
+### Debounce implementation
+
+The frontend delays calling this endpoint by 500ms after the user stops typing. The debounce logic from `script.js`:
+
+```js
+inputBusqueda.addEventListener('input', (e) => {
+  const q = e.target.value.trim();
+  clearTimeout(_buscarTimeout);
+  if (!q) {
+    _queryActual = '';
+    renderizarCatalogInicial(_carruselData);
+    return;
+  }
+  _buscarTimeout = setTimeout(() => buscarDiscos(q), 500);
+});
+```
+
+<Tip>
+  Clearing the search input resets the catalog to the initial `/recientes` data, avoiding an unnecessary API call.
+</Tip>

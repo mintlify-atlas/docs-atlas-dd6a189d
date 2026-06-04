@@ -1,0 +1,108 @@
+{
+  "projectType": "saas",
+  "projectName": "VinylVibes",
+  "projectDescription": "A full-stack online vinyl record store with a catalog browser, shopping cart, checkout flow, user authentication, and an admin panel for managing users and sales.",
+  "theme": "almond",
+  "primaryColor": "#f59e0b",
+  "lightColor": "#fbbf24",
+  "darkColor": "#b45309",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "architecture"
+            ]
+          },
+          {
+            "group": "Pages & Features",
+            "pages": [
+              "features/catalog",
+              "features/cart-and-checkout",
+              "features/authentication",
+              "features/admin-panel"
+            ]
+          },
+          {
+            "group": "Configuration & Design",
+            "pages": [
+              "configuration/environment",
+              "configuration/design-system",
+              "configuration/roles-and-access"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Auth",
+            "pages": [
+              "api/auth"
+            ]
+          },
+          {
+            "group": "Catalog",
+            "pages": [
+              "api/catalog",
+              "api/genres",
+              "api/search"
+            ]
+          },
+          {
+            "group": "Shopping",
+            "pages": [
+              "api/checkout",
+              "api/purchase-history"
+            ]
+          },
+          {
+            "group": "Admin",
+            "pages": [
+              "api/admin-users",
+              "api/admin-sales"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Dynamic vinyl catalog powered by the Discogs API with search and genre filtering",
+    "Album detail modal with YouTube video embed, Last.fm artist bio, and personalized recommendations",
+    "Shopping cart persisted in localStorage with real-time cross-tab synchronization",
+    "Two-step checkout flow (shipping address + card data) posting to the backend",
+    "JWT-based authentication with login and account registration",
+    "Role-based access control (cliente, vendedor, admin, demo)",
+    "Admin panel with user management (role change, deletion) and sales management (status updates, detail modals)",
+    "Read-only demo mode for the admin panel",
+    "Responsive design with CSS custom properties, Playfair Display, DM Sans, and DM Mono typography",
+    "Deployed as a static site on GitHub Pages — zero build step required"
+  ],
+  "publicApiSurface": [
+    "POST /login",
+    "POST /registro",
+    "GET /recientes",
+    "GET /buscar?q={query}&pagina={page}",
+    "GET /disco/{discogsId}",
+    "GET /disco/{discogsId}/historia",
+    "GET /disco/{discogsId}/video",
+    "GET /disco/{discogsId}/recomendaciones",
+    "GET /genero/{genre}?pagina={page}",
+    "POST /checkout",
+    "GET /historial",
+    "GET /mis-compras",
+    "GET /admin/usuarios",
+    "PUT /admin/usuarios/{id}/rol",
+    "DELETE /admin/usuarios/{id}",
+    "GET /admin/ventas",
+    "GET /admin/ventas/{id}",
+    "PUT /admin/ventas/{id}/estado"
+  ]
+}

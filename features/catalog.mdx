@@ -1,0 +1,169 @@
+---
+title: "Vinyl Catalog, Search, and Genre Filtering"
+sidebarTitle: "Catalog"
+description: "The main VinylVibes catalog browses vinyl records via the Discogs API, supports debounced search, genre filtering, and detailed album modals with YouTube and Last.fm."
+---
+
+The catalog page (`index.html` + `script.js`) is the core of VinylVibes. It fetches data from the backend REST API which proxies Discogs, and renders a responsive grid of vinyl records. On initial load, the page populates three distinct areas simultaneously: a horizontally scrollable carousel of recently added records, a main catalog grid, and an editorial "Novedades & Historias" section — all seeded from the same `GET /recientes` response.
+
+## Recently Added Carousel
+
+On load, `cargarRecientes()` fetches `GET /recientes` and renders up to 8 records in a horizontally scrollable carousel. Each carousel card displays the album cover, title, artist name, and price. The carousel is driven by a CSS `translateX` transform and advances in fixed steps.
+
+The carousel is moved with `moverCarrusel(dir)`, which shifts the track by **220px** per click (defined by `CARRUSEL_STEP`). The previous and next arrow buttons are dimmed to `opacity: 0.35` when the carousel reaches either boundary.
+
+```js
+function moverCarrusel(dir) {
+    const track    = document.getElementById('carrusel-track');
+    const viewport = track?.parentElement;
+    if (!track || !viewport) return;
+
+    const maxScroll = track.scrollWidth - viewport.clientWidth;
+    carruselOffset  = Math.max(0, Math.min(carruselOffset + dir * CARRUSEL_STEP, maxScroll));
+    track.style.transform = `translateX(-${carruselOffset}px)`;
+
+    document.getElementById('carrusel-prev').style.opacity = carruselOffset <= 0       ? '0.35' : '1';
+    document.getElementById('carrusel-next').style.opacity = carruselOffset >= maxScroll ? '0.35' : '1';
+}
+```
+
+## Catalog Grid
+
+Records are rendered as `.disco-card` elements inside `#contenedor-discos`. Each card includes:
+
+- **Album cover** — lazy-loaded `<img>` with a fallback Unsplash image on error
+- **Title and artist** — displayed in the card body
+- **Price** — shown in an overlay that appears on hover (`overlay-price`)
+- **Availability badge** — a `.badge--in-stock` label reading "Disponible"
+
+Clicking any card (or pressing `Enter`/`Space` for keyboard users) calls `abrirModalDetalle(discogsId)` to open the full album detail modal.
+
+```js
+function renderizarDiscos(lista) {
+    // renders .disco-card elements into #contenedor-discos
+}
+```
+
+<Note>
+  The catalog count label (`#catalog-count`) updates to reflect the current number of results — for example, `"8 discos"` on initial load or `"42 resultados"` after a search.
+</Note>
+
+## Debounced Search
+
+The search input (`#input-busqueda`) fires `buscarDiscos(q, pagina)` after a **500ms debounce**. This prevents excessive API calls while the user is still typing. When the query is cleared, the catalog reverts to the initial `cargarRecientes()` data without making a new network request.
+
+`buscarDiscos` calls `GET /buscar?q={query}&pagina={page}` and re-renders the catalog grid with the returned results. Pagination controls are rendered below the grid when the response includes more than one page (`data.paginas > 1`).
+
+```js
+async function buscarDiscos(q, pagina = 1) {
+    // GET /buscar?q={q}&pagina={pagina}
+    // renders results and pagination into #contenedor-discos
+}
+```
+
+The search response shape:
+
+```json
+{
+  "resultados": [],
+  "total": 42,
+  "paginas": 3
+}
+```
+
+## Genre Filtering
+
+VinylVibes ships with 10 fixed genres rendered as filter buttons:
+
+<CardGroup cols={5}>
+  <Card title="Rock" />
+  <Card title="Jazz" />
+  <Card title="Pop" />
+  <Card title="Electronic" />
+  <Card title="Hip Hop" />
+  <Card title="Classical" />
+  <Card title="Blues" />
+  <Card title="Folk" />
+  <Card title="Latin" />
+  <Card title="Reggae" />
+</CardGroup>
+
+Clicking a genre button calls `seleccionarGenero(btn, genero)`, which marks the button as active (`.genero-btn--active`), resets the genre page to 1, and fetches `GET /genero/{genre}?pagina={page}`. Results are rendered in the `#generos-grid` section below the filter buttons.
+
+Genre results are **cached in memory** under `_generoCache["{genre}:{page}"]` so that switching between previously visited pages is instant without a second network request.
+
+```js
+async function seleccionarGenero(btn, genero) {
+    // marks btn active, resets page, fetches GET /genero/{genero}?pagina=1
+}
+```
+
+## Album Detail Modal
+
+`abrirModalDetalle(discogsId)` opens the full album detail modal by fetching `GET /disco/{discogsId}`. The modal is populated with:
+
+- **Album cover** — full-resolution image
+- **Title and artist**
+- **Genre badge** — rendered as an inline tag if `disco.genero` is present
+- **Price and availability** — always shown as "Disponible / En stock"
+- **Story/bio block** — fetched from `GET /disco/{discogsId}/historia` (sourced via Last.fm)
+- **YouTube embed** — fetched from `GET /disco/{discogsId}/video`; renders an iframe with `youtube-nocookie.com` if a `youtube_id` is returned
+- **3 personalized recommendations** — fetched from `GET /disco/{discogsId}/recomendaciones`; uses the JWT token if the user is logged in
+
+The history endpoint, video endpoint, and recommendations endpoint are all fired **in parallel** after the base disco data resolves, so the modal appears immediately and enriches progressively.
+
+<Accordion title="Recommendations request detail">
+  The recommendations request includes the `Authorization: Bearer <token>` header when a user is logged in, allowing the backend to personalize results based on browsing history. If the user is anonymous, the header is omitted and the backend returns generic recommendations.
+</Accordion>
+
+```js
+async function abrirModalDetalle(discogsId) {
+    // GET /disco/{discogsId}
+    // parallel: GET /disco/{discogsId}/historia
+    //           GET /disco/{discogsId}/video
+    //           GET /disco/{discogsId}/recomendaciones
+}
+```
+
+If the user is logged in, `abrirModalDetalle` also fires `POST /historial` in the background to record the view — this data powers the personalized recommendations.
+
+## Storytelling View
+
+`abrirModalStorytelling(discogsId)` opens the same modal overlay but applies the `.modal-detalle__content--story` CSS modifier, which emphasizes the story/bio section and hides the price, stock, and action buttons. This mode is used exclusively from the **Novedades & Historias** editorial section, where the intent is to explore the album's narrative rather than purchase immediately.
+
+```js
+async function abrirModalStorytelling(discogsId) {
+    // Same as abrirModalDetalle but with story layout:
+    // - hides #detalle-meta-bloque and #detalle-acciones-bloque
+    // - adds .modal-detalle__content--story
+    // - loads historia with storyMode = true (shows the text block)
+}
+```
+
+## Novedades & Historias
+
+The "Novedades & Historias" section is a second editorial grid rendered from the **same `/recientes` response data** as the carousel — no additional API call is made. Cards in this grid open `abrirModalStorytelling` instead of `abrirModalDetalle`.
+
+The section has its own search input. `buscarEnNovedades(q)` filters the local `_novedadesData` array by title or artist. If the query is not found locally (i.e., the track list is limited to `GET /recientes` results), a debounced call to `GET /buscar` is made and results are rendered in storytelling card style.
+
+Pagination is client-side at **20 items per page** (`ITEMS_POR_PAGINA = 20`).
+
+```js
+function buscarEnNovedades(q) {
+    // debounced: filters _novedadesData locally,
+    // falls back to GET /buscar if no local match
+}
+```
+
+## Key Functions Reference
+
+```js
+async function cargarRecientes()
+async function buscarDiscos(q, pagina = 1)
+async function seleccionarGenero(btn, genero)
+async function abrirModalDetalle(discogsId)
+async function abrirModalStorytelling(discogsId)
+function renderizarDiscos(lista)
+function moverCarrusel(dir)
+function buscarEnNovedades(q)
+```

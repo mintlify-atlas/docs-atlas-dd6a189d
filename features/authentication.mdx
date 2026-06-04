@@ -1,7 +1,7 @@
 ---
-title: "Authentication, Registration, and JWT Sessions"
+title: "User Authentication, Registration, and JWT Sessions"
 sidebarTitle: "Authentication"
-description: "VinylVibes authenticates users with JWT tokens stored in localStorage. Login and registration are handled on login.html via POST /login and POST /registro."
+description: "VinylVibes issues JWT tokens via POST /login, stored in localStorage. POST /registro creates accounts with a 6-character minimum password requirement."
 ---
 
 Authentication in VinylVibes is handled by `login.html` and `login.js`. After a successful login, the backend returns a JWT token which is stored in `localStorage` and sent with every protected API request. The login page presents two views in a single screen — a **Login** tab and a **Register** tab — with a decorative animated vinyl record panel shown on wider viewports.
@@ -66,18 +66,16 @@ const resp = await fetch(`${API}/mis-compras`, { headers: authHeaders() });
 
 ## Signing Out
 
-Call `cerrarSesion()` from anywhere in the catalog page to end the session. It removes all session-related keys from `localStorage` and updates the navbar to the logged-out state.
+Call `cerrarSesion()` from anywhere in the catalog page to end the session. It removes the three session-related keys from `localStorage` and updates the navbar to the logged-out state.
 
 Keys removed on sign-out:
 
 - `vv_token`
 - `usuarioLogueado`
 - `esAdmin`
-- `esDemo`
-- `vv_carrito`
 
 <Note>
-  The cart is also cleared on sign-out so that a subsequent user on the same device does not inherit a previous session's items.
+  `cerrarSesion()` does not remove `vv_carrito`, so any items added before sign-out remain in the cart and will be visible if the user logs back in on the same device.
 </Note>
 
 ## Demo Account

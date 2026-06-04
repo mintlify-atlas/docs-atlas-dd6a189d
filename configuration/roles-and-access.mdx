@@ -1,5 +1,5 @@
 ---
-title: "User Roles and Access Control in VinylVibes"
+title: "VinylVibes User Roles, Access Control, and Demo Mode"
 sidebarTitle: "Roles & Access"
 description: "VinylVibes has four user roles: cliente, vendedor, admin, and demo. Roles gate access to the admin panel and determine which UI controls are enabled."
 ---
@@ -40,7 +40,13 @@ if (!token || (!esAdmin && !esDemo)) {
 
 ## Demo Mode Behavior
 
-When `esDemo` is `true` and `esAdmin` is `false`, the admin panel enters read-only mode. The following restrictions are applied at render time:
+When `esDemo` is `true` and `esAdmin` is `false`, the admin panel enters read-only mode. The `_esDemo` flag is set accordingly:
+
+```js
+_esDemo = esDemo && !esAdmin;
+```
+
+The following restrictions are applied at render time:
 
 - A read-only banner is inserted directly below the admin header, styled with the amber accent color.
 - Role dropdowns in the users table are rendered with the `disabled` attribute and reduced opacity (`0.4`).

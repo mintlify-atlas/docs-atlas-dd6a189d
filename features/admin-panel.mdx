@@ -1,14 +1,14 @@
 ---
-title: "Admin Panel: Users, Sales, and Statistics"
+title: "Admin Panel: User Management, Sales, and Statistics"
 sidebarTitle: "Admin Panel"
-description: "The VinylVibes admin panel displays real-time statistics, a searchable user table with role management, and a sales table with status updates and order details."
+description: "The VinylVibes admin panel shows user management, sales tracking with status updates, statistics pulled from the admin API, and demo read-only mode."
 ---
 
 The admin panel (`admin.html` + `admin.js`) provides a dashboard for managing users and sales. Access is restricted to users with `esAdmin === 'true'` or `esDemo === 'true'` in `localStorage`. Demo users see all data but cannot make changes — all action controls are rendered in a disabled state and a read-only banner is inserted below the header.
 
 ## Access Control
 
-On page load, `admin.js` reads `vv_token`, `esAdmin`, and `esDemo` from `localStorage`. If neither `esAdmin` nor `esDemo` is `true`, an error toast reading "Acceso denegado." is shown and the user is redirected to `index.html` after 1.5 seconds.
+On page load, `admin.js` reads `vv_token`, `esAdmin`, and `esDemo` from `localStorage`. If the token is missing, or if neither `esAdmin` nor `esDemo` is `true`, an error toast reading "Acceso denegado." is shown and the user is redirected to `index.html` after 1.5 seconds.
 
 <Note>
   The admin panel enforces access on the frontend as a UX guard. The backend independently validates the JWT for every admin endpoint (`GET /admin/usuarios`, `GET /admin/ventas`, `PUT`, `DELETE`, etc.), so removing the client-side check would not grant actual access to data.
@@ -39,7 +39,7 @@ Stats are refreshed after any write operation (role change, user deletion, or st
 
 ## User Management
 
-The **Usuarios** tab shows a paginated table of all registered accounts. Data is fetched once and filtered client-side.
+The **Usuarios** tab shows a table of all registered accounts. Data is fetched once and filtered client-side.
 
 **Table columns:** ID · Name · Email · Role · Created At · Actions
 
@@ -65,7 +65,7 @@ Available roles:
 
 ### User Deletion
 
-`confirmarEliminarUsuario(id, nombre)` replaces the action cell in-place with an inline confirmation prompt — **"¿Eliminar a \"{nombre}\"?"** — and two buttons: **Confirmar** and **Cancelar**. Confirming calls `DELETE /admin/usuarios/{id}`. On success, the user is removed from the local `_usuarios` array, the table is re-rendered, and statistics are refreshed.
+`confirmarEliminarUsuario(id, nombre)` replaces the action cell in the target table row with an inline confirmation prompt — **"¿Eliminar a \"{nombre}\"?"** — and two buttons: **Confirmar** and **Cancelar**. Confirming calls `eliminarUsuario(id, nombre)`, which sends `DELETE /admin/usuarios/{id}`. On success, the user is removed from the local `_usuarios` array, the table is re-rendered, and statistics are refreshed. Cancelling re-renders the table with the original action buttons.
 
 ## Sales Management
 
@@ -104,7 +104,7 @@ Clicking **"Ver detalle"** on any row calls `verDetalleVenta(id)`, which fetches
 
 ## Demo / Read-Only Mode
 
-When `esDemo === true` and `esAdmin === false`, the panel enters read-only mode. A banner is inserted immediately below the admin header:
+When `esDemo === true` and `esAdmin === false`, the panel enters read-only mode. The `_esDemo` flag is set to `true` at initialization and controls all disabled states throughout the page. A banner is inserted immediately below the admin header:
 
 ```
 👁 Modo solo lectura — esta cuenta no puede realizar cambios

@@ -1,10 +1,10 @@
 ---
 title: "Purchase History Endpoints for VinylVibes Users"
 sidebarTitle: "Purchase History"
-description: "GET /mis-compras returns the current user's order history. GET /historial records a vinyl view event. Both endpoints require a valid JWT."
+description: "GET /mis-compras returns the current user's order history. POST /historial records a vinyl view event. Both endpoints require a valid JWT."
 ---
 
-VinylVibes exposes two user-specific endpoints for tracking purchase activity. `GET /mis-compras` returns the full order history for the authenticated user and is used to populate the "Mis Compras" side panel in the storefront. `POST /historial` records vinyl view events automatically when a user opens an album's detail modal, and these events are used by the backend to power personalized recommendations via `GET /disco/{id}/recomendaciones`.
+VinylVibes exposes two user-specific endpoints for tracking purchase and browsing activity. `GET /mis-compras` returns the full order history for the authenticated user and is used to populate the "Mis Compras" side panel in the storefront. `POST /historial` records vinyl view events automatically when a user opens an album's detail modal, and these events are used by the backend to power personalized recommendations via `GET /disco/{id}/recomendaciones`.
 
 ---
 
@@ -12,7 +12,7 @@ VinylVibes exposes two user-specific endpoints for tracking purchase activity. `
 
 **Authentication:** Required — `Authorization: Bearer <token>`
 
-Returns the complete purchase history for the authenticated user, ordered from most to least recent. Each order includes its status, total, and a full list of the vinyl records purchased.
+Returns the complete purchase history for the authenticated user, ordered from most to least recent. Each order includes its status, total, city, and a full list of the vinyl records purchased.
 
 ### cURL Example
 
@@ -25,30 +25,30 @@ curl https://api-tienda-vinilos.onrender.com/mis-compras \
 
 Returns an array of order objects.
 
-<ResponseField name="id" type="integer">
+<ResponseField name="id_venta" type="integer">
   Unique order ID.
 </ResponseField>
 
 <ResponseField name="estado" type="string">
-  Current order status. One of: `pendiente`, `enviado`, `entregado`, or `cancelado`.
+  Current order status. One of: `pendiente`, `pagada`, `enviada`, `entregada`, or `cancelada`.
 </ResponseField>
 
-<ResponseField name="total" type="string">
-  Order total as a decimal string (e.g., `"59.98"`).
+<ResponseField name="total" type="number">
+  Order total (e.g., `59.98`).
 </ResponseField>
 
-<ResponseField name="created_at" type="string">
+<ResponseField name="fecha" type="string">
   ISO 8601 timestamp of when the order was placed.
 </ResponseField>
 
-<ResponseField name="items" type="array">
+<ResponseField name="ciudad" type="string">
+  Destination city from the shipping address, displayed alongside the order date in the UI.
+</ResponseField>
+
+<ResponseField name="discos" type="array">
   Array of vinyl records included in this order.
 
-  <Expandable title="Item fields">
-    <ResponseField name="discogs_id" type="string">
-      Discogs release ID of the vinyl.
-    </ResponseField>
-
+  <Expandable title="Disco fields">
     <ResponseField name="titulo" type="string">
       Album title at the time of purchase.
     </ResponseField>
@@ -57,16 +57,12 @@ Returns an array of order objects.
       Artist name at the time of purchase.
     </ResponseField>
 
-    <ResponseField name="imagen_url" type="string">
-      URL of the album cover image.
-    </ResponseField>
-
-    <ResponseField name="precio" type="number">
-      Unit price at the time of purchase.
-    </ResponseField>
-
     <ResponseField name="cantidad" type="integer">
       Quantity of this title ordered.
+    </ResponseField>
+
+    <ResponseField name="subtotal" type="number">
+      Line total for this item (unit price × quantity).
     </ResponseField>
   </Expandable>
 </ResponseField>
@@ -76,18 +72,17 @@ Returns an array of order objects.
 ```json
 [
   {
-    "id": 42,
-    "estado": "enviado",
-    "total": "59.98",
-    "created_at": "2025-05-20T14:23:00Z",
-    "items": [
+    "id_venta": 42,
+    "estado": "enviada",
+    "total": 59.98,
+    "fecha": "2025-05-20T14:23:00Z",
+    "ciudad": "Ciudad de México",
+    "discos": [
       {
-        "discogs_id": "12345",
         "titulo": "Kind of Blue",
         "artista": "Miles Davis",
-        "imagen_url": "https://...",
-        "precio": 29.99,
-        "cantidad": 2
+        "cantidad": 2,
+        "subtotal": 59.98
       }
     ]
   }
@@ -100,12 +95,40 @@ Returns an array of order objects.
 
 **Authentication:** Required — `Authorization: Bearer <token>`
 
-Records a vinyl view event for the authenticated user. This endpoint is called automatically by the frontend whenever a logged-in user opens the album detail modal. The backend uses the accumulated view history to generate personalized recommendations surfaced through `GET /disco/{id}/recomendaciones`.
+Records a vinyl view event for the authenticated user. This endpoint is called automatically by the frontend (`_registrarHistorial` in `script.js`) whenever a logged-in user opens the album detail modal. The backend uses the accumulated view history to generate personalized recommendations surfaced through `GET /disco/{id}/recomendaciones`.
 
 ### Request Body
 
+<ParamField body="discogs_id" type="string" required>
+  The Discogs release ID of the vinyl that was viewed.
+</ParamField>
+
+<ParamField body="titulo" type="string" required>
+  Album title.
+</ParamField>
+
+<ParamField body="artista" type="string" required>
+  Artist name.
+</ParamField>
+
+<ParamField body="genero" type="string">
+  Primary genre of the album, or `null` if not available.
+</ParamField>
+
+<ParamField body="estilo" type="string">
+  Style/subgenre of the album, or `null` if not available.
+</ParamField>
+
+### Request Body Example
+
 ```json
-{ "discogs_id": "string" }
+{
+  "discogs_id": "12345",
+  "titulo": "Kind of Blue",
+  "artista": "Miles Davis",
+  "genero": "Jazz",
+  "estilo": null
+}
 ```
 
 ### cURL Example
@@ -114,7 +137,25 @@ Records a vinyl view event for the authenticated user. This endpoint is called a
 curl -X POST https://api-tienda-vinilos.onrender.com/historial \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
-  -d '{"discogs_id": "12345"}'
+  -d '{"discogs_id":"12345","titulo":"Kind of Blue","artista":"Miles Davis","genero":"Jazz","estilo":null}'
+```
+
+### How the Frontend Calls This Endpoint
+
+The following code is taken directly from `script.js` (`_registrarHistorial` function):
+
+```js
+await fetch(`${API}/historial`, {
+    method:  'POST',
+    headers: authHeaders(),
+    body:    JSON.stringify({
+        discogs_id: disco.discogs_id,
+        titulo:     disco.titulo,
+        artista:    disco.artista || '',
+        genero:     disco.genero  || null,
+        estilo:     disco.estilo  || null,
+    }),
+});
 ```
 
 <Tip>

@@ -1,7 +1,7 @@
 ---
 title: "Configure VinylVibes for Local and Production Environments"
 sidebarTitle: "Environment"
-description: "VinylVibes has a single configuration point: the API base URL set in three JavaScript files. Learn how to change it for local development or a custom backend."
+description: "VinylVibes has a single configuration point: the API base URL declared in three JS files. No .env files, build tools, or extra setup steps are needed."
 ---
 
 VinylVibes requires no environment files, build tools, or configuration management. The only configurable value is the backend API base URL, declared as a top-level constant in each JavaScript module. Everything else — authentication state, cart persistence, and session data — is handled through `localStorage` at runtime with no additional setup.

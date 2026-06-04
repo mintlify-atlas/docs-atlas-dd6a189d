@@ -1,7 +1,7 @@
 ---
 title: "VinylVibes Design System: CSS Variables and Typography"
 sidebarTitle: "Design System"
-description: "VinylVibes uses CSS custom properties for a consistent dark theme across all three pages. Covers color tokens, typography (Playfair Display, DM Sans, DM Mono), spacing, and animation."
+description: "Complete reference for VinylVibes CSS custom properties: color tokens, gradients, borders, radii, shadows, typography, and animation values from style.css."
 ---
 
 VinylVibes has a unified dark design system defined entirely through CSS custom properties in `style.css`. All three pages (`index.html`, `login.html`, `admin.html`) reference the same stylesheet and the same tokens — there are no per-page overrides or secondary theme files. Every color, radius, shadow, and animation duration in the UI is derived from the variables defined in the `:root` block.
@@ -26,10 +26,25 @@ The color palette is built around two warm accent colors — amber and coral —
 | `--coral` | `#ff6b6b` | Secondary accent (coral) |
 | `--coral-dim` | `#7b2c2c` | Dimmed coral |
 | `--coral-glow` | `rgba(255,107,107,0.12)` | Coral glow effect |
-| `--grad-accent` | `linear-gradient(135deg, #f59e0b, #ff6b6b)` | Amber→coral gradient |
-| `--border-subtle` | `rgba(244,240,232,0.06)` | Subtle borders |
+
+## Gradient Tokens
+
+Two gradients are defined in `style.css`: a vivid accent gradient used for logo text, hero elements, and primary buttons, and a subtle tinted gradient applied as an overlay on card hover states.
+
+| Variable | Value | Usage |
+|----------|-------|-------|
+| `--grad-accent` | `linear-gradient(135deg, #f59e0b 0%, #ff6b6b 100%)` | Amber→coral gradient for buttons, logos, headings |
+| `--grad-subtle` | `linear-gradient(135deg, rgba(245,158,11,0.08), rgba(255,107,107,0.06))` | Low-opacity tinted overlay for card hover states |
+
+## Border Tokens
+
+Three border opacity levels give fine-grained control over container separation without harsh lines.
+
+| Variable | Value | Usage |
+|----------|-------|-------|
+| `--border-subtle` | `rgba(244,240,232,0.06)` | Subtle container borders |
 | `--border-dim` | `rgba(244,240,232,0.12)` | Dimmed borders |
-| `--border-accent` | `rgba(245,158,11,0.35)` | Amber-tinted borders |
+| `--border-accent` | `rgba(245,158,11,0.35)` | Amber-tinted focus and accent borders |
 
 ## Border Radius Tokens
 

@@ -98,6 +98,19 @@ curl -X PUT https://api-tienda-vinilos.onrender.com/admin/usuarios/5/rol \
   An admin cannot remove their own `admin` role. The frontend decodes the JWT to compare the current user's ID against the target user's ID before calling this endpoint — if they match and the new role is not `admin`, the request is blocked client-side and the user table is refreshed to revert the selector. The backend enforces the same rule server-side.
 </Warning>
 
+### How the Frontend Enforces the Self-Demotion Guard
+
+The following code is taken directly from `admin.js` (`cambiarRol` function). The current user's ID is parsed from the JWT payload before the request is made:
+
+```js
+const miId = JSON.parse(atob(localStorage.getItem('vv_token').split('.')[1])).id;
+if (id === miId && nuevoRol !== 'admin') {
+    mostrarToast('No puedes quitarte el rol de admin.', 'error');
+    await cargarUsuarios();
+    return;
+}
+```
+
 ---
 
 ## DELETE /admin/usuarios/\{id\}

@@ -1,7 +1,7 @@
 ---
-title: "Vinyl Search Endpoint with Pagination"
+title: "VinylVibes Search: Full-Text Vinyl Catalog Query API"
 sidebarTitle: "Search"
-description: "GET /buscar queries the Discogs catalog for vinyl records matching a search term. Results are paginated. The frontend applies a 500ms debounce before calling this endpoint."
+description: "GET /buscar?q={query} searches vinyls by title or artist. The frontend debounces by 500ms and restores /recientes data when the search input is cleared."
 ---
 
 The search endpoint allows querying the Discogs catalog by artist name or album title. The VinylVibes frontend uses a 500ms debounce before calling this endpoint to avoid excessive API calls while the user is typing. Clearing the search input cancels any pending request and restores the catalog to its initial `/recientes` state without making a network call.

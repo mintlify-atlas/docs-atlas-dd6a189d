@@ -1,7 +1,7 @@
 ---
-title: "Catalog Endpoints: Recent Vinyls and Album Detail"
+title: "VinylVibes Catalog: Recent Vinyls and Album Detail API"
 sidebarTitle: "Catalog"
-description: "GET /recientes returns the latest vinyl records. GET /disco/{id} returns full album detail. GET /disco/{id}/historia, /video, and /recomendaciones provide enriched data."
+description: "GET /recientes lists recent vinyls. GET /disco/{id} fetches album detail. Sub-endpoints return history text, a YouTube video ID, and vinyl recommendations."
 ---
 
 The catalog endpoints power the main VinylVibes storefront. They return vinyl records sourced from Discogs, enriched with Last.fm artist biographies and YouTube video links. The album detail modal fetches `/disco/{id}`, `/historia`, `/video`, and `/recomendaciones` in parallel to populate all sections of the UI without blocking the initial render.
@@ -105,15 +105,15 @@ curl https://api-tienda-vinilos.onrender.com/disco/12345
   Primary genre tag.
 </ResponseField>
 
-<ResponseField name="disponible" type="boolean">
-  Whether the record is currently in stock and available to purchase.
+<ResponseField name="estilo" type="string">
+  Sub-genre or style tag (e.g. `"Hard Bop"`, `"Classic Rock"`). May be `null`.
 </ResponseField>
 
 ---
 
 ## GET /disco/{discogsId}/historia
 
-Returns the Last.fm artist biography and album story text. This content is displayed in the storytelling modal view triggered from the **Novedades & Historias** section. The frontend sends the JWT if one is present in `localStorage`, enabling optional personalized history tracking on the backend.
+Returns the artist biography and album story text. This content is displayed in the storytelling modal view triggered from the **Novedades & Historias** section. The frontend sends the request without authentication headers — no token is required or sent for this endpoint.
 
 ### Path parameter
 
@@ -129,15 +129,15 @@ curl https://api-tienda-vinilos.onrender.com/disco/12345/historia
 
 ### Response fields
 
-<ResponseField name="historia" type="string">
-  Biography and story text sourced from Last.fm for the album's artist.
+<ResponseField name="cuerpo" type="string">
+  Biography and story text for the album's artist. Rendered as plain text in the storytelling modal.
 </ResponseField>
 
 ---
 
 ## GET /disco/{discogsId}/video
 
-Returns a YouTube video URL associated with the album. The frontend uses this to populate an iframe embed inside the album detail modal. If no video is found for the release, the response returns `null` for the URL field and the modal renders a placeholder instead.
+Returns a YouTube video identifier associated with the album. The frontend uses the `youtube_id` field to construct an `iframe` embed URL inside the album detail modal. If no video is found, the modal renders a placeholder instead.
 
 ### Path parameter
 
@@ -153,15 +153,15 @@ curl https://api-tienda-vinilos.onrender.com/disco/12345/video
 
 ### Response fields
 
-<ResponseField name="url" type="string | null">
-  A YouTube video embed URL (e.g. `https://www.youtube-nocookie.com/embed/{youtube_id}?rel=0`), or `null` if no video is available for this release.
+<ResponseField name="youtube_id" type="string | null">
+  The YouTube video ID (e.g. `"dQw4w9WgXcQ"`). The frontend embeds it as `https://www.youtube-nocookie.com/embed/{youtube_id}?rel=0&modestbranding=1`. Returns `null` if no video is available.
 </ResponseField>
 
 ---
 
 ## GET /disco/{discogsId}/recomendaciones
 
-Returns up to 3 personalized vinyl recommendations based on the album currently being viewed. Authentication is required — the frontend sends the JWT stored in `localStorage` to allow the backend to tailor results to the user's listening history.
+Returns personalized vinyl recommendations based on the album currently being viewed. The frontend sends the JWT from `localStorage` if one exists, but the request is also accepted without a token — authentication is optional.
 
 ### Path parameter
 
@@ -171,7 +171,7 @@ Returns up to 3 personalized vinyl recommendations based on the album currently 
 
 ### Authentication
 
-Required. Pass the JWT in the `Authorization` header:
+Optional. If a JWT is stored in `localStorage`, the frontend includes it in the `Authorization` header to allow the backend to personalize results. Unauthenticated requests are also accepted.
 
 ```bash
 curl https://api-tienda-vinilos.onrender.com/disco/12345/recomendaciones \
@@ -180,4 +180,4 @@ curl https://api-tienda-vinilos.onrender.com/disco/12345/recomendaciones \
 
 ### Response
 
-An array of up to 3 vinyl objects, each with the same shape as items returned by `/recientes` (`discogs_id`, `titulo`, `artista`, `imagen_url`, `precio`, `genero`).
+An array of vinyl objects, each with the same shape as items returned by `/recientes` (`discogs_id`, `titulo`, `artista`, `imagen_url`, `precio`, `genero`).

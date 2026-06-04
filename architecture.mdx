@@ -1,5 +1,5 @@
 ---
-title: "VinylVibes Architecture and System Design"
+title: "VinylVibes Frontend Architecture and System Design"
 sidebarTitle: "Architecture"
 description: "VinylVibes separates a static HTML/CSS/JS frontend from a REST API backend. Learn how pages, scripts, third-party APIs, and localStorage interact."
 ---
@@ -10,7 +10,7 @@ VinylVibes follows a classic static frontend and REST API architecture. The fron
 
 The following diagram describes the runtime relationship between the browser, the backend, and external services:
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │  Browser                                                    │
 │                                                             │
@@ -139,6 +139,8 @@ VinylVibes surfaces data from three external services, all of which are proxied 
 | **YouTube** | Video embed ID returned by `GET /disco/:id/video`; the frontend constructs the `youtube-nocookie.com/embed/:id` iframe URL from this ID |
 
 ## Demo Mode
+
+The `demo` role gives a user full visibility into the admin panel while preventing any data mutations. This is the role assigned to the built-in `admin_chocolate` account used to evaluate the admin panel without modifying production data.
 
 <Note>
   Users whose `esDemo` localStorage key is `"true"` can navigate to `admin.html` and view all statistics, user records, and sale orders — but they cannot make any changes. Every role selector and action button in the user and sales tables is rendered with the `disabled` attribute. A banner reading "👁 Modo solo lectura — esta cuenta no puede realizar cambios" is injected directly into the DOM at the top of the admin layout by `admin.js` at initialization. The demo account credentials are username `admin_chocolate` and password `chocolate`.

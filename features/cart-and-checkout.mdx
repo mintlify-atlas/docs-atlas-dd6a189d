@@ -1,7 +1,7 @@
 ---
-title: "Shopping Cart and Two-Step Checkout Flow"
+title: "Shopping Cart, Checkout, and Order Submission Flow"
 sidebarTitle: "Cart & Checkout"
-description: "VinylVibes persists the shopping cart in localStorage and syncs it across browser tabs. Checkout collects a shipping address, then card data, then posts to POST /checkout."
+description: "VinylVibes stores cart items in localStorage and syncs across browser tabs. Checkout collects shipping info and card details, then posts to POST /checkout."
 ---
 
 The cart system in VinylVibes stores items in `localStorage` under the key `vv_carrito` and syncs across browser tabs using the `storage` event. Checkout is a two-modal flow: the user first provides a shipping address, then enters card details, and finally the order is submitted to `POST /checkout`. Cart state is initialized from `localStorage` immediately when `script.js` loads, so items persist across page refreshes and browser sessions.
@@ -12,7 +12,7 @@ Items can be added to the cart from two places:
 
 - **Catalog grid** — `agregarAlCarrito(disco)` is called directly from a card's action button. If the same `discogs_id` is already in the cart, its `cantidad` is incremented rather than adding a duplicate entry.
 - **Album detail modal** — `agregarAlCarritoDesdeModal()` reads `discoActivo` (the currently open album object) and delegates to `agregarAlCarrito`. The modal is then closed automatically.
-- **"Buy Now" from modal** — `comprarDesdeModal()` adds the item and immediately opens the shipping modal, bypassing the cart panel entirely.
+- **"Buy Now" from modal** — `comprarDesdeModal()` reads `discoActivo` and opens the shipping modal directly via `abrirModalEnvio`, bypassing the cart panel entirely.
 
 ## Cart Item Structure
 
@@ -64,12 +64,12 @@ The same listener also watches `usuarioLogueado` and `esAdmin` to refresh the na
   <Step title="Open shipping modal">
     The user clicks **"Proceder al Pago"** in the cart panel, which calls `abrirCheckoutDesdeCarrito()`. This closes the cart panel and opens the shipping address modal. The form collects:
 
-    - Recipient name (`nombre`)
+    - Recipient name (`nombre_receptor`)
     - Street (`calle`)
-    - Exterior number (`num_ext`) — required
-    - Interior number (`num_int`) — optional
+    - Exterior number (`numero_ext`) — required
+    - Interior number (`numero_int`) — optional
     - Neighborhood / Colonia (`colonia`)
-    - Postal code (`cp`)
+    - Postal code (`codigo_postal`)
     - City (`ciudad`)
     - State (`estado`)
     - Delivery references (`referencias`) — optional
@@ -90,8 +90,6 @@ The same listener also watches `usuarioLogueado` and `esAdmin` to refresh the na
 
   <Step title="Submit order to backend">
     The user clicks the **"Pagar $…"** button, triggering `procesarPago()`. Client-side validation checks that all card fields are correctly formatted. If validation passes, the function POSTs to `POST /checkout` with the cart items and shipping data.
-
-    The backend calculates final prices server-side. The frontend sends only `discogs_id` and `cantidad` per item — **no prices are sent in the request body**.
   </Step>
 
   <Step title="Order confirmed">
@@ -104,15 +102,21 @@ The same listener also watches `usuarioLogueado` and `esAdmin` to refresh the na
 ```json
 {
   "items": [
-    { "discogs_id": "string", "cantidad": "number" }
+    {
+      "discogs_id": "string",
+      "titulo": "string",
+      "artista": "string",
+      "cantidad": "number",
+      "precio": "number"
+    }
   ],
   "envio": {
-    "nombre": "string",
+    "nombre_receptor": "string",
     "calle": "string",
-    "num_ext": "string",
-    "num_int": "string",
+    "numero_ext": "string",
+    "numero_int": "string",
     "colonia": "string",
-    "cp": "string",
+    "codigo_postal": "string",
     "ciudad": "string",
     "estado": "string",
     "referencias": "string"

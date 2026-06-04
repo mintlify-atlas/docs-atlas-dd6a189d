@@ -1,7 +1,7 @@
 ---
-title: "Genre Filtering Endpoint for the Vinyl Catalog"
+title: "VinylVibes Genre Filter: Paginated Vinyl Catalog by Genre"
 sidebarTitle: "Genres"
-description: "GET /genero/{genre} returns a paginated list of vinyl records filtered by genre. Supports 10 fixed genres including Rock, Jazz, Pop, Electronic, and Classical."
+description: "GET /genero/{genre} returns 20 vinyls per page for one of 10 fixed genres: Rock, Jazz, Pop, Electronic, Hip Hop, Classical, Blues, Folk, Latin, or Reggae."
 ---
 
 The genre endpoint powers the genre filter section on the VinylVibes main page. When the page loads, the frontend initializes a row of 10 genre buttons and immediately fetches the first page of the default genre. Subsequent genre selections call this endpoint, and results are cached in memory for the duration of the session to avoid redundant requests.
@@ -42,10 +42,6 @@ curl 'https://api-tienda-vinilos.onrender.com/genero/Jazz?pagina=1'
   Array of vinyl objects for the requested page. Each object has the same shape as items returned by `/recientes`: `discogs_id`, `titulo`, `artista`, `imagen_url`, `precio`, and `genero`.
 </ResponseField>
 
-<ResponseField name="total" type="integer">
-  Total number of vinyl records matching the genre filter across all pages.
-</ResponseField>
-
 <ResponseField name="paginas" type="integer">
   Total number of pages available for this genre.
 </ResponseField>
@@ -59,7 +55,6 @@ curl 'https://api-tienda-vinilos.onrender.com/genero/Jazz?pagina=1'
 ```json
 {
   "resultados": [...],
-  "total": 48,
   "paginas": 3,
   "pagina": 1
 }

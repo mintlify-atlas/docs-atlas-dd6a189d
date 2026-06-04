@@ -1,7 +1,7 @@
 ---
-title: "Vinyl Catalog, Search, and Genre Filtering"
+title: "VinylVibes Catalog: Search, Genre Filters, and Modals"
 sidebarTitle: "Catalog"
-description: "The main VinylVibes catalog browses vinyl records via the Discogs API, supports debounced search, genre filtering, and detailed album modals with YouTube and Last.fm."
+description: "Browse vinyl records with debounced search, genre filters, and rich album modals that load history, YouTube video, and personalized recommendations."
 ---
 
 The catalog page (`index.html` + `script.js`) is the core of VinylVibes. It fetches data from the backend REST API which proxies Discogs, and renders a responsive grid of vinyl records. On initial load, the page populates three distinct areas simultaneously: a horizontally scrollable carousel of recently added records, a main catalog grid, and an editorial "Novedades & Historias" section — all seeded from the same `GET /recientes` response.
@@ -73,7 +73,7 @@ The search response shape:
 
 ## Genre Filtering
 
-VinylVibes ships with 10 fixed genres rendered as filter buttons:
+VinylVibes ships with 10 fixed genres defined in the `GENEROS_FIJOS` constant, rendered as filter buttons:
 
 <CardGroup cols={5}>
   <Card title="Rock" />
@@ -108,7 +108,7 @@ async function seleccionarGenero(btn, genero) {
 - **Price and availability** — always shown as "Disponible / En stock"
 - **Story/bio block** — fetched from `GET /disco/{discogsId}/historia` (sourced via Last.fm)
 - **YouTube embed** — fetched from `GET /disco/{discogsId}/video`; renders an iframe with `youtube-nocookie.com` if a `youtube_id` is returned
-- **3 personalized recommendations** — fetched from `GET /disco/{discogsId}/recomendaciones`; uses the JWT token if the user is logged in
+- **Personalized recommendations** — fetched from `GET /disco/{discogsId}/recomendaciones`; uses the JWT token if the user is logged in
 
 The history endpoint, video endpoint, and recommendations endpoint are all fired **in parallel** after the base disco data resolves, so the modal appears immediately and enriches progressively.
 
@@ -144,7 +144,7 @@ async function abrirModalStorytelling(discogsId) {
 
 The "Novedades & Historias" section is a second editorial grid rendered from the **same `/recientes` response data** as the carousel — no additional API call is made. Cards in this grid open `abrirModalStorytelling` instead of `abrirModalDetalle`.
 
-The section has its own search input. `buscarEnNovedades(q)` filters the local `_novedadesData` array by title or artist. If the query is not found locally (i.e., the track list is limited to `GET /recientes` results), a debounced call to `GET /buscar` is made and results are rendered in storytelling card style.
+The section has its own search input. `buscarEnNovedades(q)` filters the local `_novedadesData` array by title or artist with a 500ms debounce. If no local match is found in the `_novedadesData` set, a call to `GET /buscar` is made and results are rendered in storytelling card style.
 
 Pagination is client-side at **20 items per page** (`ITEMS_POR_PAGINA = 20`).
 
@@ -164,6 +164,7 @@ async function seleccionarGenero(btn, genero)
 async function abrirModalDetalle(discogsId)
 async function abrirModalStorytelling(discogsId)
 function renderizarDiscos(lista)
+function renderizarNovedades(lista)
 function moverCarrusel(dir)
 function buscarEnNovedades(q)
 ```

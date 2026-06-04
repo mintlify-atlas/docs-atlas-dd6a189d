@@ -29,10 +29,10 @@ Creates a new order from the current cart contents and shipping address. On succ
 </ParamField>
 
 <ParamField body="envio" type="object" required>
-  Shipping address for the order. All fields except `num_int` and `referencias` are required.
+  Shipping address for the order. All fields except `numero_int` and `referencias` are required.
 
   <Expandable title="Shipping address fields">
-    <ParamField body="nombre" type="string" required>
+    <ParamField body="nombre_receptor" type="string" required>
       Recipient's full name.
     </ParamField>
 
@@ -40,11 +40,11 @@ Creates a new order from the current cart contents and shipping address. On succ
       Street name.
     </ParamField>
 
-    <ParamField body="num_ext" type="string" required>
+    <ParamField body="numero_ext" type="string" required>
       Exterior number.
     </ParamField>
 
-    <ParamField body="num_int" type="string">
+    <ParamField body="numero_int" type="string">
       Interior number (optional — apartment, suite, etc.).
     </ParamField>
 
@@ -52,7 +52,7 @@ Creates a new order from the current cart contents and shipping address. On succ
       Neighborhood (colonia).
     </ParamField>
 
-    <ParamField body="cp" type="string" required>
+    <ParamField body="codigo_postal" type="string" required>
       Postal code.
     </ParamField>
 
@@ -79,12 +79,12 @@ Creates a new order from the current cart contents and shipping address. On succ
     { "discogs_id": "67890", "cantidad": 2 }
   ],
   "envio": {
-    "nombre": "Ana García",
+    "nombre_receptor": "Ana García",
     "calle": "Av. Insurgentes Sur",
-    "num_ext": "1602",
-    "num_int": "8B",
+    "numero_ext": "1602",
+    "numero_int": "8B",
     "colonia": "Crédito Constructor",
-    "cp": "03940",
+    "codigo_postal": "03940",
     "ciudad": "Ciudad de México",
     "estado": "CDMX",
     "referencias": "Edificio azul, timbre 8B"
@@ -98,7 +98,7 @@ Creates a new order from the current cart contents and shipping address. On succ
 curl -X POST https://api-tienda-vinilos.onrender.com/checkout \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer <token>' \
-  -d '{"items":[{"discogs_id":"12345","cantidad":1}],"envio":{"nombre":"Ana García","calle":"Insurgentes","num_ext":"1602","colonia":"CDMX","cp":"03940","ciudad":"Ciudad de México","estado":"CDMX"}}'
+  -d '{"items":[{"discogs_id":"12345","cantidad":1}],"envio":{"nombre_receptor":"Ana García","calle":"Insurgentes","numero_ext":"1602","colonia":"Crédito Constructor","codigo_postal":"03940","ciudad":"Ciudad de México","estado":"CDMX"}}'
 ```
 
 ### Responses
@@ -125,15 +125,40 @@ curl -X POST https://api-tienda-vinilos.onrender.com/checkout \
 
 ### How the Frontend Calls This Endpoint
 
-The following code is taken directly from `script.js`. Note that only `discogs_id` and `cantidad` are sent per item — price is intentionally omitted.
+The following code is taken directly from `script.js` (`procesarPago` function). Each item includes `discogs_id`, `titulo`, `artista`, `cantidad`, and `precio`. The shipping address object (`_datosEnvio`) is built from the form and uses the field names shown above.
 
 ```js
-const resp = await fetch(`${API}/checkout`, {
-  method: 'POST',
-  headers: authHeaders(),
-  body: JSON.stringify({
-    items: carrito.map(i => ({ discogs_id: i.discogs_id, cantidad: i.cantidad })),
-    envio: datosEnvio,
-  }),
+const res = await fetch(`${API}/checkout`, {
+    method:  'POST',
+    headers: authHeaders(),
+    body:    JSON.stringify({ items, envio: _datosEnvio }),
 });
+```
+
+Where `items` for a cart checkout is constructed as:
+
+```js
+items = carrito.map(item => ({
+    discogs_id: item.discogs_id,
+    titulo:     item.titulo,
+    artista:    item.artista,
+    cantidad:   item.cantidad,
+    precio:     item.precio,
+}));
+```
+
+And `_datosEnvio` is assembled from the shipping form as:
+
+```js
+_datosEnvio = {
+    nombre_receptor: nombre,
+    calle,
+    numero_ext:   numExt,
+    numero_int:   get('envio-num-int') || null,
+    colonia,
+    codigo_postal: cp,
+    ciudad,
+    estado,
+    referencias:  get('envio-referencias') || null,
+};
 ```

@@ -1,7 +1,7 @@
 ---
 title: "VinylVibes: Open-Source Vinyl Record Store Frontend"
 sidebarTitle: "Introduction"
-description: "VinylVibes is a static vinyl record store built with vanilla JS, HTML, and CSS. It integrates Discogs, Last.fm, and YouTube to power its catalog, stories, and media."
+description: "VinylVibes is a static vinyl record store built with HTML5, CSS3, and vanilla JS. Discogs, Last.fm, and YouTube data is proxied through a hosted REST API."
 ---
 
 VinylVibes is a premium vinyl record store frontend built entirely with HTML5, CSS3, and vanilla JavaScript — no frameworks, no build tools, no package manager required. The interface is served as a static site hosted on GitHub Pages and communicates with a hosted REST API backend at `https://api-tienda-vinilos.onrender.com`. User session data and the shopping cart are persisted in `localStorage`, with Google Fonts (Playfair Display, DM Sans, DM Mono) providing the typographic system. The result is a fully functional e-commerce experience that runs anywhere a browser does, with zero infrastructure overhead on the frontend side.
@@ -37,6 +37,8 @@ VinylVibes is a premium vinyl record store frontend built entirely with HTML5, C
 
 ## Pages
 
+VinylVibes is organized into three HTML pages, each paired with a dedicated JavaScript module that owns its behavior.
+
 | Page | Purpose |
 |------|---------|
 | `index.html` | Main catalog page — carousel of recent additions, Discogs search with 500 ms debounce, genre filter tabs, album detail modal, shopping cart panel, purchase history panel, and checkout flow |
@@ -44,6 +46,8 @@ VinylVibes is a premium vinyl record store frontend built entirely with HTML5, C
 | `admin.html` | Admin panel — stats cards, user management table with role controls, sales management table with status transitions and order detail modal |
 
 ## Scripts and Styles
+
+The frontend logic is split across three JavaScript files and one shared stylesheet. Each script file is self-contained and declares its own `API` constant independently.
 
 | File | Responsibility |
 |------|---------------|

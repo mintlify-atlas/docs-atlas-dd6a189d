@@ -1,7 +1,7 @@
 ---
-title: "Authentication API: Login and Registration Endpoints"
+title: "VinylVibes Authentication: Login and Registration API"
 sidebarTitle: "Auth"
-description: "POST /login authenticates a VinylVibes user and returns a JWT. POST /registro creates a new account. Both endpoints require a JSON body with nombre_usuario and password."
+description: "POST /login returns a JWT and session metadata. POST /registro creates a new account. Both require nombre_usuario and password in the request body."
 ---
 
 VinylVibes uses JWT-based authentication. Two endpoints handle auth: `POST /login` returns a token and session metadata, and `POST /registro` creates a new account. The JWT must be included in all protected requests via the `Authorization: Bearer` header. Tokens are stored in `localStorage` by the frontend after a successful login and cleared on logout.
